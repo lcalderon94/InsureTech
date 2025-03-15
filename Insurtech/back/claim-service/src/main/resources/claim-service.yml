@@ -1,0 +1,23 @@
+server:
+  port: 9400
+
+spring:
+  application:
+    name: claim-service
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: ${DB_USERNAME:claim_user}
+    password: ${DB_PASSWORD:claim_password}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+  batch:
+    job:
+      enabled: false
+    initialize-schema: always
+
+thread-pool:
+  core-size: 5
+  max-size: 10
+  queue-capacity: 100
