@@ -1,0 +1,23 @@
+server:
+  port: 9700
+
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: ${DB_USERNAME:payment_user}
+    password: ${DB_PASSWORD:payment_password}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: payment-service
+
+async:
+  core-pool-size: 5
+  max-pool-size: 10
+  queue-capacity: 25
