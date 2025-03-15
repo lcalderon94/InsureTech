@@ -12,3 +12,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+
+async:
+  core-pool-size: 5
+  max-pool-size: 10
+  queue-capacity: 25
