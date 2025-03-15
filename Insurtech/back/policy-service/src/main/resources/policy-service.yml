@@ -1,0 +1,14 @@
+server:
+  port: 9200
+
+spring:
+  application:
+    name: policy-service
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: ${DB_USERNAME:policy_user}
+    password: ${DB_PASSWORD:policy_password}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
