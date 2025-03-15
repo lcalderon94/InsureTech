@@ -1,0 +1,20 @@
+server:
+  port: 9800
+
+spring:
+  application:
+    name: document-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/documentdb
+
+minio:
+  endpoint: http://localhost:9000
+  access-key: ${MINIO_ACCESS_KEY:minioadmin}
+  secret-key: ${MINIO_SECRET_KEY:minioadmin}
+  bucket: documents
+
+thread-pool:
+  core-size: 5
+  max-size: 10
+  queue-capacity: 100
