@@ -1,0 +1,14 @@
+server:
+  port: 9100
+
+spring:
+  application:
+    name: customer-service
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: ${DB_USERNAME:customer_user}
+    password: ${DB_PASSWORD:customer_password}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
