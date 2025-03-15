@@ -1,0 +1,16 @@
+server:
+  port: 9300
+
+spring:
+  application:
+    name: quote-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/quotedb
+  webflux:
+    base-path: /api/quotes
+
+async:
+  core-pool-size: 5
+  max-pool-size: 10
+  queue-capacity: 25
