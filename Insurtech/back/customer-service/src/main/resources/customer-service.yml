@@ -12,3 +12,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+
+batch:
+  chunk-size: 100
+  thread-count: 4
