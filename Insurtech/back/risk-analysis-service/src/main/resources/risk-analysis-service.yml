@@ -1,0 +1,13 @@
+server:
+  port: 9600
+
+spring:
+  application:
+    name: risk-analysis-service
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/riskdb
+
+fork-join-pool:
+  parallelism: 4
+  async-mode: true
