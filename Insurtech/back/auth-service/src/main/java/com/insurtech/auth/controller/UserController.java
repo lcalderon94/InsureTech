@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +20,18 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+
+    @PostMapping("/register/admin")
+    public ResponseEntity<UserDto> registerAdminUser(@Valid @RequestBody UserDto userDto) {
+        // Asegurar que el rol ADMIN esté en la solicitud
+        if (userDto.getRoles() == null) {
+            userDto.setRoles(new HashSet<>());
+        }
+        userDto.getRoles().add("ADMIN");
+
+        User registeredUser = userService.createUser(userDto);
+        return new ResponseEntity<>(mapToDto(registeredUser), HttpStatus.CREATED);
+    }
 
     @PostMapping("/register")
     public ResponseEntity<UserDto> registerUser(@Valid @RequestBody UserDto userDto) {

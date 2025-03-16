@@ -22,8 +22,7 @@ import java.util.stream.Collectors;
 public class User implements UserDetails {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_USERS")
-    @SequenceGenerator(name = "SEQ_USERS", sequenceName = "SEQ_USERS", allocationSize = 1)
+    @Column(name = "ID")
     private Long id;
 
     @Column(unique = true, nullable = false)
@@ -59,11 +58,11 @@ public class User implements UserDetails {
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt;
 
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinTable(
             name = "USER_ROLES",
-            joinColumns = @JoinColumn(name = "USER_ID"),
-            inverseJoinColumns = @JoinColumn(name = "ROLE_ID")
+            joinColumns = @JoinColumn(name = "USER_ID", referencedColumnName = "ID"),
+            inverseJoinColumns = @JoinColumn(name = "ROLE_ID", referencedColumnName = "ID")
     )
     private Set<Role> roles = new HashSet<>();
 

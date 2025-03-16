@@ -6,7 +6,11 @@ import com.insurtech.auth.model.entity.User;
 import com.insurtech.auth.repository.RoleRepository;
 import com.insurtech.auth.repository.UserRepository;
 import com.insurtech.auth.service.UserService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.LoggerFactory;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -14,11 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.*;
+import org.slf4j.Logger;
 
 @Service
 @RequiredArgsConstructor
@@ -28,38 +29,49 @@ public class UserServiceImpl implements UserService, UserDetailsService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+
+
+
     @Override
     @Transactional
     public User createUser(UserDto userDto) {
-        if (existsByUsername(userDto.getUsername())) {
-            throw new IllegalArgumentException("El nombre de usuario ya existe");
+        // Validaciones
+        if (existsByUsername(userDto.getUsername()) || existsByEmail(userDto.getEmail())) {
+            throw new IllegalArgumentException("El nombre de usuario o email ya existe");
         }
 
-        if (existsByEmail(userDto.getEmail())) {
-            throw new IllegalArgumentException("El email ya está registrado");
-        }
+        // Obtener el siguiente ID de secuencia
+        Long nextId = userRepository.getNextUserId();
 
+        // Crear usuario
         User user = new User();
+        user.setId(nextId);
         user.setUsername(userDto.getUsername());
         user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         user.setEmail(userDto.getEmail());
         user.setFirstName(userDto.getFirstName());
         user.setLastName(userDto.getLastName());
 
-        // Asignar roles
-        Set<Role> roles = new HashSet<>();
+        // Procesar roles desde el DTO
+        Set<Role> userRoles = new HashSet<>();
+
         if (userDto.getRoles() != null && !userDto.getRoles().isEmpty()) {
-            userDto.getRoles().forEach(roleName -> {
+            // Buscar roles por nombre y agregarlos
+            for (String roleName : userDto.getRoles()) {
                 roleRepository.findByName(roleName)
-                        .ifPresent(roles::add);
-            });
-        } else {
-            // Asignar rol por defecto si no se especifica
-            roleRepository.findByName("USER")
-                    .ifPresent(roles::add);
+                        .ifPresent(userRoles::add);
+            }
         }
 
-        user.setRoles(roles);
+        // Si no se encontró ningún rol válido, usar rol predeterminado
+        if (userRoles.isEmpty()) {
+            Role defaultRole = roleRepository.findById(2L)
+                    .orElseThrow(() -> new RuntimeException("Rol predeterminado no encontrado"));
+            userRoles.add(defaultRole);
+        }
+
+        user.setRoles(userRoles);
 
         return userRepository.save(user);
     }
