@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: auth-service
+  config:
+    import: "configserver:http://localhost:8888"
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/xepdb1
+    username: AUTH_SCHEMA
+    password: ayabrea
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+        format_sql: true
+    show-sql: true
+
+server:
+  port: 9000
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    preferIpAddress: true
+
+jwt:
+  secret: rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3
+  issuer: insurtech-auth
+  expiration: 86400000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.insurtech: DEBUG
+    org.springframework.security: INFO

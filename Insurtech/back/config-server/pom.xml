@@ -43,11 +43,11 @@
 			<artifactId>spring-cloud-config-server</artifactId>
 		</dependency>
 
-		<!-- Spring Security -->
+		<!-- Spring Security
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
+		</dependency> -->
 
 		<!-- Spring Boot Actuator for monitoring and management -->
 		<dependency>
