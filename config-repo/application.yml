@@ -1,13 +1,23 @@
-# Configuración común para todos los microservicios
-eureka:
-  client:
-    serviceUrl:
-      defaultZone: http://discovery-service:8761/eureka/
-  instance:
-    preferIpAddress: true
+server:
+  port: 8888
+
+spring:
+  application:
+    name: config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:../../config-repo
+  security:
+    user:
+      name: ${CONFIG_SERVER_USER:config-user}
+      password: ${CONFIG_SERVER_PASSWORD:config-pass}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,refresh
