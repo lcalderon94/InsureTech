@@ -1,0 +1,66 @@
+spring:
+  application:
+    name: customer-service
+
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/xepdb1
+    username: CUSTOMER_SCHEMA
+    password: ayabrea
+    driver-class-name: oracle.jdbc.OracleDriver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+        format_sql: true
+    show-sql: true
+    open-in-view: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:9000/.well-known/jwks.json
+
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: customer-service-group
+      auto-offset-reset: earliest
+
+  config:
+    import: "configserver:http://localhost:8888"
+
+server:
+  port: 8081
+  servlet:
+    context-path: /
+
+async:
+  core-pool-size: 5
+  max-pool-size: 10
+  queue-capacity: 25
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    preferIpAddress: true
+
+logging:
+  level:
+    com.insurtech.customer: DEBUG
+    org.springframework.security: INFO
+    org.springframework.web: INFO
