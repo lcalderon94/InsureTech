@@ -32,7 +32,7 @@ public class Address {
     @Column(nullable = false)
     private String street;
 
-    @Column
+    @Column(name = "HOUSE_NUMBER")
     private String number;
 
     @Column

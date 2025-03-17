@@ -1,5 +1,6 @@
 package com.insurtech.customer.config;
 
+import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,6 +12,9 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+import javax.crypto.SecretKey;
+import java.util.Base64;
+
 /**
  * Configuración de seguridad para el microservicio
  */
@@ -19,8 +23,8 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}")
-    private String jwkSetUri;
+    @Value("${spring.security.oauth2.resourceserver.jwt.secret}")
+    private String secret;
 
     /**
      * Configura la cadena de filtros de seguridad
@@ -45,6 +49,8 @@ public class SecurityConfig {
      */
     @Bean
     public JwtDecoder jwtDecoder() {
-        return NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+        byte[] keyBytes = Base64.getEncoder().encode(secret.getBytes());
+        SecretKey key = Keys.hmacShaKeyFor(keyBytes);
+        return NimbusJwtDecoder.withSecretKey(key).build();
     }
 }

@@ -34,6 +34,7 @@ public class Segment {
     private SegmentType segmentType;
 
     @Column(name = "SEGMENT_CRITERIA")
+    @Lob
     private String segmentCriteria;
 
     @Column(name = "IS_ACTIVE")

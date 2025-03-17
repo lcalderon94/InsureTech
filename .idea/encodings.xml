@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/Insurtech/back/api-gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/auth-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/claim-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/config-server/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/config-server/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/customer-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/discovery-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/document-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/monitoring-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/notification-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/payment-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/policy-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/quote-service/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Insurtech/back/risk-analysis-service/src/main/java" charset="UTF-8" />
+  </component>
+</project>
