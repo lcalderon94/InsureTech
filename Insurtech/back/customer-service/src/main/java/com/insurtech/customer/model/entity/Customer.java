@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,9 +16,11 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Customer {
 
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_CUSTOMERS")
     @SequenceGenerator(name = "SEQ_CUSTOMERS", sequenceName = "SEQ_CUSTOMERS", allocationSize = 1)
     private Long id;
@@ -55,12 +57,15 @@ public class Customer {
     private String riskProfile;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
     private Set<Address> addresses = new HashSet<>();
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
     private Set<ContactMethod> contactMethods = new HashSet<>();
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    @EqualsAndHashCode.Exclude
     private Set<Preference> preferences = new HashSet<>();
 
     @ManyToMany
@@ -69,6 +74,7 @@ public class Customer {
             joinColumns = @JoinColumn(name = "CUSTOMER_ID"),
             inverseJoinColumns = @JoinColumn(name = "SEGMENT_ID")
     )
+    @EqualsAndHashCode.Exclude
     private Set<Segment> segments = new HashSet<>();
 
     @CreationTimestamp

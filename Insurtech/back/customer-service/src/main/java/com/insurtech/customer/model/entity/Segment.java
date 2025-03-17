@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -16,9 +16,11 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Segment {
 
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_SEGMENTS")
     @SequenceGenerator(name = "SEQ_SEGMENTS", sequenceName = "SEQ_SEGMENTS", allocationSize = 1)
     private Long id;
@@ -41,6 +43,7 @@ public class Segment {
     private boolean isActive = true;
 
     @ManyToMany(mappedBy = "segments")
+    @EqualsAndHashCode.Exclude
     private Set<Customer> customers = new HashSet<>();
 
     @CreationTimestamp

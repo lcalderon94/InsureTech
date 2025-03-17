@@ -4,9 +4,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-
 import java.time.LocalDateTime;
 
 @Entity
@@ -14,15 +14,18 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Address {
 
     @Id
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "SEQ_ADDRESSES")
     @SequenceGenerator(name = "SEQ_ADDRESSES", sequenceName = "SEQ_ADDRESSES", allocationSize = 1)
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "CUSTOMER_ID", nullable = false)
+    @EqualsAndHashCode.Exclude
     private Customer customer;
 
     @Column(name = "ADDRESS_TYPE", nullable = false)

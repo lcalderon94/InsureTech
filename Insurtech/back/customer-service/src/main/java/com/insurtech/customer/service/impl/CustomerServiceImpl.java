@@ -90,7 +90,7 @@ public class CustomerServiceImpl implements CustomerService {
         customer = customerRepository.save(customer);
 
         // Publicar evento de cliente creado
-        eventProducer.publishCustomerCreated(customer);
+        //eventProducer.publishCustomerCreated(customer);
 
         log.info("Customer created successfully with ID: {}", customer.getId());
 

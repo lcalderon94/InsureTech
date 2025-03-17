@@ -16,7 +16,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.List;
 
 @RestController
@@ -35,9 +36,14 @@ public class CustomerController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
-    @Operation(summary = "Crear un nuevo cliente", description = "Crea un nuevo cliente en el sistema")
+    @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_AGENT')")
     public ResponseEntity<CustomerDto> createCustomer(@Valid @RequestBody CustomerDto customerDto) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        System.out.println("Usuario autenticado: " + auth.getName());
+        System.out.println("Autoridades: " + auth.getAuthorities());
+        System.out.println("¿Principal es instancia de UserDetails? " + (auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails));
+
+        // Tu código original...
         log.info("Creating customer");
         CustomerDto createdCustomer = customerService.createCustomer(customerDto);
         return new ResponseEntity<>(createdCustomer, HttpStatus.CREATED);
