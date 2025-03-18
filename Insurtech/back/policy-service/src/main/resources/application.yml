@@ -1,9 +1,9 @@
 spring:
   application:
-    name: customer-service
+    name: policy-service
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/xepdb1
-    username: CUSTOMER_SCHEMA
+    username: POLICY_SCHEMA
     password: ayabrea
     driver-class-name: oracle.jdbc.OracleDriver
   jpa:
@@ -20,21 +20,11 @@ spring:
       resourceserver:
         jwt:
           secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: customer-service-group
-      auto-offset-reset: earliest
   config:
     import: "configserver:http://localhost:8888"
 
-
-app:
-  events:
-    enabled: false
-
 server:
-  port: 8081
+  port: 8082
   servlet:
     context-path: /
 
@@ -42,6 +32,21 @@ async:
   core-pool-size: 5
   max-pool-size: 10
   queue-capacity: 25
+
+services:
+  customer-service:
+    url: http://localhost:8081
+  document-service:
+    url: http://localhost:8085
+  quote-service:
+    url: http://localhost:8083
+  risk-analysis-service:
+    url: http://localhost:8084
+
+jwt:
+  secret: rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3
+  issuer: insurtech-auth
+  expiration: 86400000
 
 management:
   endpoints:
@@ -61,6 +66,8 @@ eureka:
 
 logging:
   level:
-    com.insurtech.customer: DEBUG
+    com.insurtech.policy: DEBUG
     org.springframework.security: INFO
     org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

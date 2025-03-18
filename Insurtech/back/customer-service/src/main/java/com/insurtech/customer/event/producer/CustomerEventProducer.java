@@ -4,12 +4,14 @@ import com.insurtech.customer.model.entity.Customer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Servicio para publicar eventos relacionados con clientes en Kafka
@@ -25,6 +27,9 @@ public class CustomerEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    @Value("${app.events.enabled:false}")
+    private boolean eventsEnabled;
+
     @Autowired
     public CustomerEventProducer(KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
@@ -34,6 +39,12 @@ public class CustomerEventProducer {
      * Publica evento cuando se crea un nuevo cliente
      */
     public void publishCustomerCreated(Customer customer) {
+        // Verificar si los eventos están habilitados
+        if (!eventsEnabled) {
+            log.info("Eventos desactivados: se omite la publicación del evento de cliente creado");
+            return;
+        }
+
         log.info("Publicando evento de cliente creado para el cliente ID: {}", customer.getId());
 
         Map<String, Object> event = new HashMap<>();
@@ -50,7 +61,7 @@ public class CustomerEventProducer {
             kafkaTemplate.send(CUSTOMER_CREATED_TOPIC, customer.getCustomerNumber(), event);
             log.debug("Evento de cliente creado publicado exitosamente");
         } catch (Exception e) {
-            log.error("Error al publicar evento de cliente creado", e);
+            log.error("Error al publicar evento de cliente creado - continuando sin interrumpir el flujo", e);
         }
     }
 
@@ -58,6 +69,12 @@ public class CustomerEventProducer {
      * Publica evento cuando se actualiza un cliente
      */
     public void publishCustomerUpdated(Customer customer) {
+        // Verificar si los eventos están habilitados
+        if (!eventsEnabled) {
+            log.info("Eventos desactivados: se omite la publicación del evento de cliente actualizado");
+            return;
+        }
+
         log.info("Publicando evento de cliente actualizado para el cliente ID: {}", customer.getId());
 
         Map<String, Object> event = new HashMap<>();
@@ -73,7 +90,7 @@ public class CustomerEventProducer {
             kafkaTemplate.send(CUSTOMER_UPDATED_TOPIC, customer.getCustomerNumber(), event);
             log.debug("Evento de cliente actualizado publicado exitosamente");
         } catch (Exception e) {
-            log.error("Error al publicar evento de cliente actualizado", e);
+            log.error("Error al publicar evento de cliente actualizado - continuando sin interrumpir el flujo", e);
         }
     }
 
@@ -81,6 +98,12 @@ public class CustomerEventProducer {
      * Publica evento cuando cambia el estado de un cliente
      */
     public void publishCustomerStatusChanged(Customer customer, Customer.CustomerStatus oldStatus) {
+        // Verificar si los eventos están habilitados
+        if (!eventsEnabled) {
+            log.info("Eventos desactivados: se omite la publicación del evento de cambio de estado");
+            return;
+        }
+
         log.info("Publicando evento de cambio de estado para el cliente ID: {}", customer.getId());
 
         Map<String, Object> event = new HashMap<>();
@@ -97,7 +120,7 @@ public class CustomerEventProducer {
             kafkaTemplate.send(CUSTOMER_STATUS_CHANGED_TOPIC, customer.getCustomerNumber(), event);
             log.debug("Evento de cambio de estado publicado exitosamente");
         } catch (Exception e) {
-            log.error("Error al publicar evento de cambio de estado", e);
+            log.error("Error al publicar evento de cambio de estado - continuando sin interrumpir el flujo", e);
         }
     }
 }

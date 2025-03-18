@@ -28,6 +28,11 @@ spring:
   config:
     import: "configserver:http://localhost:8888"
 
+
+app:
+  events:
+    enabled: false
+
 server:
   port: 8081
   servlet:
