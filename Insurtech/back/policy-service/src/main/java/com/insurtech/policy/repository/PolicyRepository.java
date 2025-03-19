@@ -38,8 +38,11 @@ public interface PolicyRepository extends JpaRepository<Policy, Long> {
             "LOWER(p.customerNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<Policy> search(@Param("searchTerm") String searchTerm, Pageable pageable);
 
-    @Query("SELECT p FROM Policy p WHERE p.endDate BETWEEN :startDate AND :endDate AND p.status = com.insurtech.policy.model.entity.Policy.PolicyStatus.ACTIVE")
-    List<Policy> findPoliciesExpiringBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    @Query("SELECT p FROM Policy p WHERE p.endDate BETWEEN :startDate AND :endDate AND p.status = :status")
+    List<Policy> findPoliciesExpiringBetween(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate,
+            @Param("status") Policy.PolicyStatus status);
 
     @Query("SELECT p FROM Policy p JOIN p.coverages pc WHERE pc.coverage.id = :coverageId")
     List<Policy> findPoliciesWithCoverage(@Param("coverageId") Long coverageId);

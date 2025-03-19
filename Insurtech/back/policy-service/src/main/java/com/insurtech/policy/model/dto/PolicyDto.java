@@ -25,7 +25,6 @@ public class PolicyDto {
 
     private String policyNumber;
 
-    @NotNull(message = "El ID del cliente es obligatorio")
     private Long customerId;
 
     private String customerNumber;
@@ -65,4 +64,8 @@ public class PolicyDto {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private String customerEmail;
+    private String identificationNumber;
+    private String identificationType;
 }

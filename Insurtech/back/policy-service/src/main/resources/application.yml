@@ -20,8 +20,18 @@ spring:
       resourceserver:
         jwt:
           secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
+  # Configuración Kafka (valores mínimos para evitar errores)
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: policy-service-group
+      auto-offset-reset: earliest
   config:
     import: "configserver:http://localhost:8888"
+
+# Propiedad para deshabilitar Kafka (usar con @ConditionalOnProperty en KafkaConfig)
+kafka:
+  enabled: false  # Cambiar a true cuando quieras activar Kafka
 
 server:
   port: 8082

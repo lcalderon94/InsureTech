@@ -17,6 +17,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.media.Schema;
+
 
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -37,10 +39,21 @@ public class PolicyController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
-    @Operation(summary = "Crear una nueva póliza", description = "Crea una nueva póliza de seguro")
-    public ResponseEntity<PolicyDto> createPolicy(@Valid @RequestBody PolicyDto policyDto) {
-        log.info("Creando nueva póliza");
+    @Operation(
+            summary = "Crear una nueva póliza",
+            description = "Crea una nueva póliza de seguro. El cliente puede ser identificado mediante customerId, customerEmail, identificationNumber+identificationType, o customerNumber."
+    )
+    public ResponseEntity<PolicyDto> createPolicy(
+            @Valid @RequestBody
+            @Schema(description = "Datos de la póliza. Para identificar al cliente puede proporcionar: " +
+                    "customerId directo, customerEmail, identificationNumber+identificationType, o customerNumber")
+            PolicyDto policyDto) {
+
+        log.info("Solicitud recibida para crear póliza");
+
+        // El servicio modificado se encargará de resolver el ID del cliente
         PolicyDto createdPolicy = policyService.createPolicy(policyDto);
+
         return new ResponseEntity<>(createdPolicy, HttpStatus.CREATED);
     }
 

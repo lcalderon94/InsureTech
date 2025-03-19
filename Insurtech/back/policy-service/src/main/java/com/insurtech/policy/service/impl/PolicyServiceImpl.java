@@ -50,34 +50,30 @@ public class PolicyServiceImpl implements PolicyService {
     @Override
     @Transactional
     public PolicyDto createPolicy(PolicyDto policyDto) {
-        log.info("Creando póliza para cliente: {}", policyDto.getCustomerId());
+        log.info("Creando póliza para cliente");
 
-        // Validar cliente
-        validateCustomer(policyDto.getCustomerId());
+        // Validar y obtener ID del cliente
+        Long customerId = validateCustomer(policyDto);
+        policyDto.setCustomerId(customerId);
 
-        // Generar número de póliza si no se proporcionó
+        // Resto del código existente...
         if (policyDto.getPolicyNumber() == null) {
             policyDto.setPolicyNumber(generatePolicyNumber(policyDto.getPolicyType()));
         }
 
-        // Por defecto, una nueva póliza está en estado DRAFT si no se especifica
         if (policyDto.getStatus() == null) {
             policyDto.setStatus(Policy.PolicyStatus.DRAFT);
         }
 
-        // Convertir DTO a entidad
         Policy policy = mapper.toEntity(policyDto);
         policy.setCreatedBy(getCurrentUsername());
         policy.setUpdatedBy(getCurrentUsername());
 
-        // Guardar la póliza
         policy = policyRepository.save(policy);
 
-        // Crear versión inicial
         policyVersioningService.createPolicyVersion(policy.getId(), "Creación inicial de póliza");
 
-        // Publicar evento
-        eventProducer.publishPolicyCreated(policy);
+        //eventProducer.publishPolicyCreated(policy);
 
         log.info("Póliza creada con éxito. ID: {}, Número: {}", policy.getId(), policy.getPolicyNumber());
 
@@ -264,7 +260,11 @@ public class PolicyServiceImpl implements PolicyService {
     @Transactional(readOnly = true)
     public List<PolicyDto> getPoliciesExpiringBetween(LocalDate startDate, LocalDate endDate) {
         log.debug("Obteniendo pólizas que expiran entre {} y {}", startDate, endDate);
-        return policyRepository.findPoliciesExpiringBetween(startDate, endDate).stream()
+        return policyRepository.findPoliciesExpiringBetween(
+                        startDate,
+                        endDate,
+                        Policy.PolicyStatus.ACTIVE)
+                .stream()
                 .map(mapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -296,16 +296,97 @@ public class PolicyServiceImpl implements PolicyService {
         return concurrentPolicyValidator.validatePolicy(policyDto);
     }
 
+    /**
+     * Resuelve el ID del cliente utilizando campos alternativos
+     */
+    private Long resolveCustomerId(PolicyDto policyDto) {
+        // Intentar resolver por email
+        if (policyDto.getCustomerEmail() != null && !policyDto.getCustomerEmail().isEmpty()) {
+            try {
+                log.debug("Buscando cliente por email: {}", policyDto.getCustomerEmail());
+                Map<String, Object> customer = customerClient.getCustomerByEmail(policyDto.getCustomerEmail());
+                return ((Number) customer.get("id")).longValue();
+            } catch (Exception e) {
+                log.warn("No se encontró cliente con email: {}", policyDto.getCustomerEmail(), e);
+                // No lanzamos excepción aquí para intentar otros métodos
+            }
+        }
+
+        // Intentar resolver por identificación
+        if (policyDto.getIdentificationNumber() != null && policyDto.getIdentificationType() != null) {
+            try {
+                log.debug("Buscando cliente por identificación: {}/{}",
+                        policyDto.getIdentificationNumber(), policyDto.getIdentificationType());
+                Map<String, Object> customer = customerClient.getCustomerByIdentification(
+                        policyDto.getIdentificationNumber(), policyDto.getIdentificationType());
+                return ((Number) customer.get("id")).longValue();
+            } catch (Exception e) {
+                log.warn("No se encontró cliente con identificación: {}/{}",
+                        policyDto.getIdentificationNumber(), policyDto.getIdentificationType(), e);
+            }
+        }
+
+        // Intentar resolver por número de cliente
+        if (policyDto.getCustomerNumber() != null) {
+            try {
+                log.debug("Buscando cliente por número: {}", policyDto.getCustomerNumber());
+                Map<String, Object> customer = customerClient.getCustomerByNumber(policyDto.getCustomerNumber());
+                return ((Number) customer.get("id")).longValue();
+            } catch (Exception e) {
+                log.warn("No se encontró cliente con número: {}", policyDto.getCustomerNumber(), e);
+            }
+        }
+
+        // Si llegamos aquí, no pudimos resolver el cliente
+        throw new BusinessValidationException("No se pudo identificar al cliente. Por favor, proporcione información válida de identificación.");
+    }
+
     // Métodos auxiliares
 
-    private void validateCustomer(Long customerId) {
-        // Verificar que el cliente existe usando Feign Client
-        try {
-            customerClient.getCustomerById(customerId);
-        } catch (Exception e) {
-            log.error("Error validando cliente ID: {}", customerId, e);
-            throw new BusinessValidationException("Cliente no encontrado con ID: " + customerId);
+    /**
+     * Valida la existencia del cliente utilizando diferentes identificadores
+     * @param policyDto DTO con datos de identificación del cliente
+     * @return ID del cliente encontrado
+     */
+    private Long validateCustomer(PolicyDto policyDto) {
+        // Verificar por email
+        if (policyDto.getCustomerEmail() != null && !policyDto.getCustomerEmail().isEmpty()) {
+            try {
+                Map<String, Object> customer = customerClient.getCustomerByEmail(policyDto.getCustomerEmail());
+                return ((Number) customer.get("id")).longValue();
+            } catch (Exception e) {
+                log.error("Error validando cliente por email: {}", policyDto.getCustomerEmail(), e);
+                throw new BusinessValidationException("Cliente no encontrado con email: " + policyDto.getCustomerEmail());
+            }
         }
+
+        // Verificar por identificación
+        if (policyDto.getIdentificationNumber() != null && policyDto.getIdentificationType() != null) {
+            try {
+                Map<String, Object> customer = customerClient.getCustomerByIdentification(
+                        policyDto.getIdentificationNumber(), policyDto.getIdentificationType());
+                return ((Number) customer.get("id")).longValue();
+            } catch (Exception e) {
+                log.error("Error validando cliente por identificación: {}/{}",
+                        policyDto.getIdentificationNumber(), policyDto.getIdentificationType(), e);
+                throw new BusinessValidationException("Cliente no encontrado con identificación: " +
+                        policyDto.getIdentificationNumber() + " (" + policyDto.getIdentificationType() + ")");
+            }
+        }
+
+        // Verificar por número de cliente
+        if (policyDto.getCustomerNumber() != null && !policyDto.getCustomerNumber().isEmpty()) {
+            try {
+                Map<String, Object> customer = customerClient.getCustomerByNumber(policyDto.getCustomerNumber());
+                return ((Number) customer.get("id")).longValue();
+            } catch (Exception e) {
+                log.error("Error validando cliente por número: {}", policyDto.getCustomerNumber(), e);
+                throw new BusinessValidationException("Cliente no encontrado con número: " + policyDto.getCustomerNumber());
+            }
+        }
+
+        // Si llegamos aquí sin encontrar cliente, lanzar excepción
+        throw new BusinessValidationException("No se proporcionó información suficiente para identificar al cliente");
     }
 
     private void validateStatusTransition(Policy.PolicyStatus currentStatus, Policy.PolicyStatus newStatus) {
