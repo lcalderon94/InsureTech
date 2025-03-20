@@ -46,16 +46,6 @@ public class ClaimController {
         return new ResponseEntity<>(createdClaim, HttpStatus.CREATED);
     }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Obtener reclamación por ID (Solo sistema)", description = "Obtiene una reclamación por su ID interno (uso restringido)")
-    public ResponseEntity<ClaimDto> getClaimById(@PathVariable Long id) {
-        log.info("Obteniendo reclamación por ID interno: {}", id);
-        return claimService.getClaimById(id)
-                .map(ResponseEntity::ok)
-                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con ID: " + id));
-    }
-
     @GetMapping("/number/{claimNumber}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
     @Operation(summary = "Obtener reclamación por número", description = "Obtiene una reclamación por su número")
@@ -95,6 +85,15 @@ public class ClaimController {
         return ResponseEntity.ok(claims);
     }
 
+    @GetMapping("/customer/email/{email}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
+    @Operation(summary = "Obtener reclamaciones por email del cliente", description = "Obtiene todas las reclamaciones de un cliente por su email")
+    public ResponseEntity<List<ClaimDto>> getClaimsByCustomerEmail(@PathVariable String email) {
+        log.info("Obteniendo reclamaciones para cliente con email: {}", email);
+        List<ClaimDto> claims = claimService.getClaimsByCustomerEmail(email);
+        return ResponseEntity.ok(claims);
+    }
+
     @GetMapping("/policy/{policyNumber}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
     @Operation(summary = "Obtener reclamaciones por póliza", description = "Obtiene todas las reclamaciones de una póliza")
@@ -111,12 +110,8 @@ public class ClaimController {
             @PathVariable String claimNumber,
             @Valid @RequestBody ClaimDto claimDto) {
         log.info("Actualizando reclamación con número: {}", claimNumber);
-        return claimService.getClaimByNumber(claimNumber)
-                .map(existingClaim -> {
-                    ClaimDto updatedClaim = claimService.updateClaim(existingClaim.getId(), claimDto);
-                    return ResponseEntity.ok(updatedClaim);
-                })
-                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+        ClaimDto updatedClaim = claimService.updateClaimByNumber(claimNumber, claimDto);
+        return ResponseEntity.ok(updatedClaim);
     }
 
     @PatchMapping("/number/{claimNumber}/status")
@@ -126,18 +121,14 @@ public class ClaimController {
             @PathVariable String claimNumber,
             @Valid @RequestBody ClaimStatusUpdateDto statusUpdateDto) {
         log.info("Actualizando estado a {} para reclamación número: {}", statusUpdateDto.getStatus(), claimNumber);
-        return claimService.getClaimByNumber(claimNumber)
-                .map(existingClaim -> {
-                    ClaimDto updatedClaim = claimService.updateClaimStatus(
-                            existingClaim.getId(),
-                            statusUpdateDto.getStatus(),
-                            statusUpdateDto.getComments(),
-                            statusUpdateDto.getApprovedAmount(),
-                            statusUpdateDto.getDenialReason()
-                    );
-                    return ResponseEntity.ok(updatedClaim);
-                })
-                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+        ClaimDto updatedClaim = claimService.updateClaimStatusByNumber(
+                claimNumber,
+                statusUpdateDto.getStatus(),
+                statusUpdateDto.getComments(),
+                statusUpdateDto.getApprovedAmount(),
+                statusUpdateDto.getDenialReason()
+        );
+        return ResponseEntity.ok(updatedClaim);
     }
 
     @GetMapping("/status/{status}")
@@ -185,12 +176,8 @@ public class ClaimController {
             @PathVariable String claimNumber,
             @Valid @RequestBody ClaimItemDto itemDto) {
         log.info("Añadiendo ítem a reclamación número: {}", claimNumber);
-        return claimService.getClaimByNumber(claimNumber)
-                .map(existingClaim -> {
-                    ClaimItemDto createdItem = claimService.addClaimItem(existingClaim.getId(), itemDto);
-                    return new ResponseEntity<>(createdItem, HttpStatus.CREATED);
-                })
-                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+        ClaimItemDto createdItem = claimService.addClaimItemByClaimNumber(claimNumber, itemDto);
+        return new ResponseEntity<>(createdItem, HttpStatus.CREATED);
     }
 
     @GetMapping("/number/{claimNumber}/items")
@@ -198,12 +185,8 @@ public class ClaimController {
     @Operation(summary = "Obtener ítems de reclamación", description = "Obtiene todos los ítems de una reclamación")
     public ResponseEntity<List<ClaimItemDto>> getClaimItems(@PathVariable String claimNumber) {
         log.info("Obteniendo ítems para reclamación número: {}", claimNumber);
-        return claimService.getClaimByNumber(claimNumber)
-                .map(existingClaim -> {
-                    List<ClaimItemDto> items = claimService.getClaimItems(existingClaim.getId());
-                    return ResponseEntity.ok(items);
-                })
-                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+        List<ClaimItemDto> items = claimService.getClaimItemsByClaimNumber(claimNumber);
+        return ResponseEntity.ok(items);
     }
 
     @PatchMapping("/number/{claimNumber}/items/{itemId}")
@@ -223,12 +206,8 @@ public class ClaimController {
     @Operation(summary = "Obtener documentos de reclamación", description = "Obtiene todos los documentos de una reclamación")
     public ResponseEntity<List<ClaimDocumentDto>> getClaimDocuments(@PathVariable String claimNumber) {
         log.info("Obteniendo documentos para reclamación número: {}", claimNumber);
-        return claimService.getClaimByNumber(claimNumber)
-                .map(existingClaim -> {
-                    List<ClaimDocumentDto> documents = documentService.getClaimDocuments(existingClaim.getId());
-                    return ResponseEntity.ok(documents);
-                })
-                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+        List<ClaimDocumentDto> documents = documentService.getDocumentsByClaimNumber(claimNumber);
+        return ResponseEntity.ok(documents);
     }
 
     @GetMapping("/summary")

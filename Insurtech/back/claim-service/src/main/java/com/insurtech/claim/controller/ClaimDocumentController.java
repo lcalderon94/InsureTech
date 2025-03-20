@@ -48,32 +48,26 @@ public class ClaimDocumentController {
         log.info("Cargando documento {} para reclamación número: {}", title, claimNumber);
 
         try {
-            return claimService.getClaimByNumber(claimNumber)
-                    .map(claim -> {
-                        try {
-                            ClaimDocumentDto uploadedDocument = documentService.uploadDocument(
-                                    claim.getId(), file, title, description, documentType);
-                            return new ResponseEntity<>(uploadedDocument, HttpStatus.CREATED);
-                        } catch (IOException e) {
-                            log.error("Error al procesar el archivo", e);
-                            throw new RuntimeException("Error al procesar el archivo: " + e.getMessage());
-                        }
-                    })
-                    .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+            ClaimDocumentDto uploadedDocument = documentService.uploadDocumentByClaimNumber(
+                    claimNumber, file, title, description, documentType);
+            return new ResponseEntity<>(uploadedDocument, HttpStatus.CREATED);
         } catch (Exception e) {
             log.error("Error al subir documento", e);
             throw new RuntimeException("Error al subir documento: " + e.getMessage());
         }
     }
 
-    @GetMapping("/{documentId}")
+    @GetMapping("/claim/{claimNumber}/title/{title}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
-    @Operation(summary = "Obtener documento", description = "Obtiene un documento por su ID")
-    public ResponseEntity<ClaimDocumentDto> getDocument(@PathVariable Long documentId) {
-        log.info("Obteniendo documento con ID: {}", documentId);
+    @Operation(summary = "Obtener documento por reclamación y título", description = "Obtiene un documento por número de reclamación y título")
+    public ResponseEntity<ClaimDocumentDto> getDocumentByClaimNumberAndTitle(
+            @PathVariable String claimNumber,
+            @PathVariable String title) {
+        log.info("Obteniendo documento con título: {} para reclamación número: {}", title, claimNumber);
 
-        ClaimDocumentDto document = documentService.getDocumentById(documentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Documento no encontrado con ID: " + documentId));
+        ClaimDocumentDto document = documentService.getDocumentByClaimNumberAndTitle(claimNumber, title)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Documento no encontrado con título: " + title + " para reclamación: " + claimNumber));
 
         return ResponseEntity.ok(document);
     }
@@ -81,75 +75,80 @@ public class ClaimDocumentController {
     @GetMapping("/claim/{claimNumber}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
     @Operation(summary = "Obtener documentos por reclamación", description = "Obtiene todos los documentos de una reclamación")
-    public ResponseEntity<List<ClaimDocumentDto>> getDocumentsByClaim(@PathVariable String claimNumber) {
+    public ResponseEntity<List<ClaimDocumentDto>> getDocumentsByClaimNumber(@PathVariable String claimNumber) {
         log.info("Obteniendo documentos para reclamación número: {}", claimNumber);
 
-        return claimService.getClaimByNumber(claimNumber)
-                .map(claim -> {
-                    List<ClaimDocumentDto> documents = documentService.getClaimDocuments(claim.getId());
-                    return ResponseEntity.ok(documents);
-                })
-                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+        List<ClaimDocumentDto> documents = documentService.getDocumentsByClaimNumber(claimNumber);
+        return ResponseEntity.ok(documents);
     }
 
-    @GetMapping("/download/{documentId}")
+    @GetMapping("/download/claim/{claimNumber}/title/{title}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
-    @Operation(summary = "Descargar documento", description = "Descarga un documento por su ID")
-    public ResponseEntity<byte[]> downloadDocument(@PathVariable Long documentId) {
-        log.info("Descargando documento con ID: {}", documentId);
+    @Operation(summary = "Descargar documento", description = "Descarga un documento por número de reclamación y título")
+    public ResponseEntity<byte[]> downloadDocumentByClaimNumberAndTitle(
+            @PathVariable String claimNumber,
+            @PathVariable String title) {
+        log.info("Descargando documento con título: {} para reclamación número: {}", title, claimNumber);
 
-        return documentService.getDocumentById(documentId)
-                .map(document -> {
-                    try {
-                        byte[] fileContent = documentService.downloadDocument(documentId);
+        try {
+            ClaimDocumentDto document = documentService.getDocumentByClaimNumberAndTitle(claimNumber, title)
+                    .orElseThrow(() -> new ResourceNotFoundException(
+                            "Documento no encontrado con título: " + title + " para reclamación: " + claimNumber));
 
-                        return ResponseEntity.ok()
-                                .contentType(MediaType.parseMediaType(document.getMimeType()))
-                                .header("Content-Disposition", "attachment; filename=\"" + document.getFileName() + "\"")
-                                .body(fileContent);
-                    } catch (Exception e) {
-                        log.error("Error al descargar documento", e);
-                        throw new RuntimeException("Error al descargar documento: " + e.getMessage());
-                    }
-                })
-                .orElseThrow(() -> new ResourceNotFoundException("Documento no encontrado con ID: " + documentId));
+            byte[] fileContent = documentService.downloadDocumentByClaimNumberAndTitle(claimNumber, title);
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(document.getMimeType()))
+                    .header("Content-Disposition", "attachment; filename=\"" + document.getFileName() + "\"")
+                    .body(fileContent);
+        } catch (Exception e) {
+            log.error("Error al descargar documento", e);
+            throw new RuntimeException("Error al descargar documento: " + e.getMessage());
+        }
     }
 
-    @PatchMapping("/{documentId}")
+    @PatchMapping("/claim/{claimNumber}/title/{title}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Actualizar documento", description = "Actualiza la información de un documento")
-    public ResponseEntity<ClaimDocumentDto> updateDocument(
-            @PathVariable Long documentId,
+    public ResponseEntity<ClaimDocumentDto> updateDocumentByClaimNumberAndTitle(
+            @PathVariable String claimNumber,
+            @PathVariable String title,
             @Valid @RequestBody ClaimDocumentDto documentDto) {
 
-        log.info("Actualizando documento con ID: {}", documentId);
+        log.info("Actualizando documento con título: {} para reclamación número: {}", title, claimNumber);
 
-        ClaimDocumentDto updatedDocument = documentService.updateDocument(documentId, documentDto);
+        ClaimDocumentDto updatedDocument = documentService.updateDocumentByClaimNumberAndTitle(
+                claimNumber, title, documentDto);
 
         return ResponseEntity.ok(updatedDocument);
     }
 
-    @DeleteMapping("/{documentId}")
+    @DeleteMapping("/claim/{claimNumber}/title/{title}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Eliminar documento", description = "Elimina un documento por su ID")
-    public ResponseEntity<Void> deleteDocument(@PathVariable Long documentId) {
-        log.info("Eliminando documento con ID: {}", documentId);
+    @Operation(summary = "Eliminar documento", description = "Elimina un documento por número de reclamación y título")
+    public ResponseEntity<Void> deleteDocumentByClaimNumberAndTitle(
+            @PathVariable String claimNumber,
+            @PathVariable String title) {
+        log.info("Eliminando documento con título: {} para reclamación número: {}", title, claimNumber);
 
-        documentService.deleteDocument(documentId);
+        documentService.deleteDocumentByClaimNumberAndTitle(claimNumber, title);
 
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{documentId}/verify")
+    @PatchMapping("/claim/{claimNumber}/title/{title}/verify")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Verificar documento", description = "Marca un documento como verificado")
-    public ResponseEntity<ClaimDocumentDto> verifyDocument(
-            @PathVariable Long documentId,
+    public ResponseEntity<ClaimDocumentDto> verifyDocumentByClaimNumberAndTitle(
+            @PathVariable String claimNumber,
+            @PathVariable String title,
             @RequestParam boolean verified) {
 
-        log.info("Marcando documento ID: {} como verificado: {}", documentId, verified);
+        log.info("Marcando documento con título: {} para reclamación número: {} como verificado: {}",
+                title, claimNumber, verified);
 
-        ClaimDocumentDto updatedDocument = documentService.setDocumentVerificationStatus(documentId, verified);
+        ClaimDocumentDto updatedDocument = documentService.setDocumentVerificationStatusByClaimNumberAndTitle(
+                claimNumber, title, verified);
 
         return ResponseEntity.ok(updatedDocument);
     }

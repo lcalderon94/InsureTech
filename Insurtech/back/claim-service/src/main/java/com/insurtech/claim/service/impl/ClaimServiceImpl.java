@@ -158,8 +158,8 @@ public class ClaimServiceImpl implements ClaimService {
             try {
                 Map<String, Object> customer = customerClient.getCustomerByIdentification(
                         searchRequest.getIdentificationNumber(), searchRequest.getIdentificationType());
-                Long customerId = ((Number) customer.get("id")).longValue();
-                results = claimRepository.findByCustomerId(customerId);
+                String customerNumber = (String) customer.get("customerNumber");
+                results = claimRepository.findByCustomerNumber(customerNumber);
             } catch (Exception e) {
                 log.error("Error al buscar cliente por identificación", e);
                 // Continuar con lista vacía
@@ -257,8 +257,8 @@ public class ClaimServiceImpl implements ClaimService {
         log.debug("Obteniendo reclamaciones para el cliente email: {}", email);
         try {
             Map<String, Object> customer = customerClient.getCustomerByEmail(email);
-            Long customerId = ((Number) customer.get("id")).longValue();
-            return getClaimsByCustomerId(customerId);
+            String customerNumber = (String) customer.get("customerNumber");
+            return getClaimsByCustomerNumber(customerNumber);
         } catch (Exception e) {
             log.error("Error al obtener cliente por email: {}", email, e);
             return Collections.emptyList();
@@ -337,6 +337,16 @@ public class ClaimServiceImpl implements ClaimService {
 
     @Override
     @Transactional
+    public ClaimDto updateClaimByNumber(String claimNumber, ClaimDto claimDto) {
+        log.info("Actualizando reclamación con número: {}", claimNumber);
+
+        return claimRepository.findByClaimNumber(claimNumber)
+                .map(claim -> updateClaim(claim.getId(), claimDto))
+                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+    }
+
+    @Override
+    @Transactional
     public ClaimDto updateClaimStatus(Long id, Claim.ClaimStatus status, String comments, BigDecimal approvedAmount, String denialReason) {
         log.info("Actualizando estado a {} para reclamación ID: {}", status, id);
 
@@ -405,6 +415,16 @@ public class ClaimServiceImpl implements ClaimService {
         log.info("Estado de reclamación actualizado con éxito. ID: {}", id);
 
         return mapper.toDto(claim);
+    }
+
+    @Override
+    @Transactional
+    public ClaimDto updateClaimStatusByNumber(String claimNumber, Claim.ClaimStatus status, String comments, BigDecimal approvedAmount, String denialReason) {
+        log.info("Actualizando estado a {} para reclamación número: {}", status, claimNumber);
+
+        return claimRepository.findByClaimNumber(claimNumber)
+                .map(claim -> updateClaimStatus(claim.getId(), status, comments, approvedAmount, denialReason))
+                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
     }
 
     @Override
@@ -599,12 +619,32 @@ public class ClaimServiceImpl implements ClaimService {
     }
 
     @Override
+    @Transactional
+    public ClaimItemDto addClaimItemByClaimNumber(String claimNumber, ClaimItemDto itemDto) {
+        log.info("Añadiendo ítem a reclamación número: {}", claimNumber);
+
+        return claimRepository.findByClaimNumber(claimNumber)
+                .map(claim -> addClaimItem(claim.getId(), itemDto))
+                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ClaimItemDto> getClaimItems(Long claimId) {
         log.debug("Obteniendo ítems para reclamación ID: {}", claimId);
         return claimItemRepository.findByClaimId(claimId).stream()
                 .map(mapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClaimItemDto> getClaimItemsByClaimNumber(String claimNumber) {
+        log.debug("Obteniendo ítems para reclamación número: {}", claimNumber);
+
+        return claimRepository.findByClaimNumber(claimNumber)
+                .map(claim -> getClaimItems(claim.getId()))
+                .orElseThrow(() -> new ClaimNotFoundException("Reclamación no encontrada con número: " + claimNumber));
     }
 
     @Override
@@ -766,6 +806,22 @@ public class ClaimServiceImpl implements ClaimService {
                 }
             } catch (Exception e) {
                 log.error("Error al obtener pólizas para cliente ID: {}", customerId, e);
+            }
+        }
+
+        // Intentar resolver por número de cliente
+        String customerNumber = claimDto.getCustomerNumber();
+        if (customerNumber != null && !customerNumber.isEmpty()) {
+            try {
+                List<Map<String, Object>> policies = policyClient.getPoliciesByCustomerNumber(customerNumber);
+                if (!policies.isEmpty()) {
+                    Map<String, Object> policy = policies.get(0); // Usar la primera póliza encontrada
+                    Long policyId = ((Number) policy.get("id")).longValue();
+                    claimDto.setPolicyNumber((String) policy.get("policyNumber"));
+                    return policyId;
+                }
+            } catch (Exception e) {
+                log.error("Error al obtener pólizas para cliente número: {}", customerNumber, e);
             }
         }
 

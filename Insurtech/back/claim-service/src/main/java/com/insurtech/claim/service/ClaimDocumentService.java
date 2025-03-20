@@ -11,7 +11,7 @@ import java.util.Optional;
 public interface ClaimDocumentService {
 
     /**
-     * Carga un documento para una reclamación
+     * Carga un documento para una reclamación por ID (método interno)
      */
     ClaimDocumentDto uploadDocument(
             Long claimId,
@@ -21,34 +21,74 @@ public interface ClaimDocumentService {
             ClaimDocument.DocumentType documentType) throws IOException;
 
     /**
-     * Obtiene un documento por su ID
+     * Carga un documento para una reclamación por número de reclamación
+     */
+    ClaimDocumentDto uploadDocumentByClaimNumber(
+            String claimNumber,
+            MultipartFile file,
+            String title,
+            String description,
+            ClaimDocument.DocumentType documentType) throws IOException;
+
+    /**
+     * Obtiene un documento por su ID (método interno)
      */
     Optional<ClaimDocumentDto> getDocumentById(Long documentId);
 
     /**
-     * Obtiene todos los documentos de una reclamación
+     * Obtiene un documento por número de reclamación y título
+     */
+    Optional<ClaimDocumentDto> getDocumentByClaimNumberAndTitle(String claimNumber, String title);
+
+    /**
+     * Obtiene todos los documentos de una reclamación por ID (método interno)
      */
     List<ClaimDocumentDto> getClaimDocuments(Long claimId);
 
     /**
-     * Descarga un documento
+     * Obtiene todos los documentos de una reclamación por número de reclamación
+     */
+    List<ClaimDocumentDto> getDocumentsByClaimNumber(String claimNumber);
+
+    /**
+     * Descarga un documento por ID (método interno)
      */
     byte[] downloadDocument(Long documentId) throws IOException;
 
     /**
-     * Actualiza la información de un documento
+     * Descarga un documento por número de reclamación y título
+     */
+    byte[] downloadDocumentByClaimNumberAndTitle(String claimNumber, String title) throws IOException;
+
+    /**
+     * Actualiza la información de un documento por ID (método interno)
      */
     ClaimDocumentDto updateDocument(Long documentId, ClaimDocumentDto documentDto);
 
     /**
-     * Elimina un documento
+     * Actualiza la información de un documento por número de reclamación y título
+     */
+    ClaimDocumentDto updateDocumentByClaimNumberAndTitle(String claimNumber, String title, ClaimDocumentDto documentDto);
+
+    /**
+     * Elimina un documento por ID (método interno)
      */
     void deleteDocument(Long documentId);
 
     /**
-     * Marca un documento como verificado o no verificado
+     * Elimina un documento por número de reclamación y título
+     */
+    void deleteDocumentByClaimNumberAndTitle(String claimNumber, String title);
+
+    /**
+     * Marca un documento como verificado o no verificado por ID (método interno)
      */
     ClaimDocumentDto setDocumentVerificationStatus(Long documentId, boolean verified);
+
+    /**
+     * Marca un documento como verificado o no verificado por número de reclamación y título
+     */
+    ClaimDocumentDto setDocumentVerificationStatusByClaimNumberAndTitle(String claimNumber, String title, boolean verified);
 
     /**
      * Obtiene documentos de un tipo específico

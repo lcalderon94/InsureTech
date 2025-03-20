@@ -23,7 +23,7 @@ public interface ClaimService {
     ClaimDto createClaim(ClaimDto claimDto);
 
     /**
-     * Obtiene una reclamación por su ID
+     * Obtiene una reclamación por su ID (método interno)
      */
     Optional<ClaimDto> getClaimById(Long id);
 
@@ -68,14 +68,24 @@ public interface ClaimService {
     List<ClaimDto> getClaimsByPolicyNumber(String policyNumber);
 
     /**
-     * Actualiza una reclamación existente
+     * Actualiza una reclamación existente por ID (método interno)
      */
     ClaimDto updateClaim(Long id, ClaimDto claimDto);
 
     /**
-     * Actualiza el estado de una reclamación
+     * Actualiza una reclamación existente por número de reclamación
+     */
+    ClaimDto updateClaimByNumber(String claimNumber, ClaimDto claimDto);
+
+    /**
+     * Actualiza el estado de una reclamación por ID (método interno)
      */
     ClaimDto updateClaimStatus(Long id, Claim.ClaimStatus status, String comments, BigDecimal approvedAmount, String denialReason);
+
+    /**
+     * Actualiza el estado de una reclamación por número de reclamación
+     */
+    ClaimDto updateClaimStatusByNumber(String claimNumber, Claim.ClaimStatus status, String comments, BigDecimal approvedAmount, String denialReason);
 
     /**
      * Obtiene todas las reclamaciones en un estado específico
@@ -98,14 +108,24 @@ public interface ClaimService {
     CompletableFuture<Map<String, Object>> getClaimsAdvancedAnalyticsAsync();
 
     /**
-     * Añade un ítem a una reclamación
+     * Añade un ítem a una reclamación por ID (método interno)
      */
     ClaimItemDto addClaimItem(Long claimId, ClaimItemDto itemDto);
 
     /**
-     * Obtiene todos los ítems de una reclamación
+     * Añade un ítem a una reclamación por número de reclamación
+     */
+    ClaimItemDto addClaimItemByClaimNumber(String claimNumber, ClaimItemDto itemDto);
+
+    /**
+     * Obtiene todos los ítems de una reclamación por ID (método interno)
      */
     List<ClaimItemDto> getClaimItems(Long claimId);
+
+    /**
+     * Obtiene todos los ítems de una reclamación por número de reclamación
+     */
+    List<ClaimItemDto> getClaimItemsByClaimNumber(String claimNumber);
 
     /**
      * Actualiza un ítem de una reclamación
