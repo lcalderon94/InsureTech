@@ -62,8 +62,16 @@ public class QuoteCalculationServiceImpl implements QuoteCalculationService {
             }
         }
 
-        // Aplicar descuentos
-        return applyDiscounts(basePremium, quoteDto.getCustomerId(), null)
+        // Aplicar descuentos usando identificadores de negocio
+        String customerIdentifier = quoteDto.getCustomerEmail() != null ?
+                quoteDto.getCustomerEmail() : quoteDto.getCustomerNumber();
+
+        // Si no tenemos ningún identificador pero tenemos identificación, usarla
+        if (customerIdentifier == null && quoteDto.getIdentificationNumber() != null) {
+            customerIdentifier = quoteDto.getIdentificationNumber();
+        }
+
+        return applyDiscounts(basePremium, customerIdentifier, null)
                 .defaultIfEmpty(basePremium);
     }
 
@@ -83,8 +91,24 @@ public class QuoteCalculationServiceImpl implements QuoteCalculationService {
         BigDecimal basePremium = sumInsured.multiply(BigDecimal.valueOf(baseRate))
                 .setScale(2, RoundingMode.HALF_UP);
 
-        // Aplicar descuentos
-        return applyDiscounts(basePremium, requestDto.getCustomerId(), requestDto)
+        // Determinar el mejor identificador de negocio disponible
+        String customerIdentifier = null;
+
+        // Priorizar email como identificador
+        if (requestDto.getCustomerEmail() != null && !requestDto.getCustomerEmail().isEmpty()) {
+            customerIdentifier = requestDto.getCustomerEmail();
+        }
+        // Usar número de cliente si el email no está disponible
+        else if (requestDto.getCustomerNumber() != null && !requestDto.getCustomerNumber().isEmpty()) {
+            customerIdentifier = requestDto.getCustomerNumber();
+        }
+        // Usar identificación como último recurso
+        else if (requestDto.getIdentificationNumber() != null && !requestDto.getIdentificationNumber().isEmpty()) {
+            customerIdentifier = requestDto.getIdentificationNumber();
+        }
+
+        // Aplicar descuentos usando el identificador de negocio
+        return applyDiscounts(basePremium, customerIdentifier, requestDto)
                 .defaultIfEmpty(basePremium);
     }
 
@@ -157,17 +181,29 @@ public class QuoteCalculationServiceImpl implements QuoteCalculationService {
     }
 
     @Override
-    public Mono<BigDecimal> applyDiscounts(BigDecimal basePremium, Long customerId, QuoteRequestDto requestDto) {
-        log.info("Aplicando descuentos para cliente ID: {}", customerId);
+    public Mono<BigDecimal> applyDiscounts(BigDecimal basePremium, String customerIdentifier, QuoteRequestDto requestDto) {
+        log.info("Aplicando descuentos para cliente con identificador: {}", customerIdentifier);
 
-        // Si no hay cliente identificado, no aplicar descuentos
-        if (customerId == null) {
+        // Si no hay identificador, no aplicar descuentos
+        if (customerIdentifier == null || customerIdentifier.isEmpty()) {
             return Mono.just(basePremium);
         }
 
         try {
-            // Obtener pólizas existentes del cliente para descuento por cartera
-            List<Map<String, Object>> customerPolicies = policyClient.getPoliciesByCustomerId(customerId);
+            List<Map<String, Object>> customerPolicies;
+
+            // Detectar el tipo de identificador y usar el método apropiado
+            if (customerIdentifier.contains("@")) {
+                // Es un email
+                customerPolicies = policyClient.getPoliciesByCustomerEmail(customerIdentifier);
+            } else if (requestDto != null && requestDto.getIdentificationType() != null) {
+                // Es una identificación
+                customerPolicies = policyClient.getPoliciesByCustomerIdentification(
+                        customerIdentifier, requestDto.getIdentificationType());
+            } else {
+                // Asumir que es un número de cliente
+                customerPolicies = policyClient.getPoliciesByCustomerNumber(customerIdentifier);
+            }
 
             // Descuento por cliente existente (más de una póliza)
             double discountFactor = 1.0;
@@ -180,7 +216,6 @@ public class QuoteCalculationServiceImpl implements QuoteCalculationService {
             // Aplicar descuento
             return Mono.just(basePremium.multiply(BigDecimal.valueOf(discountFactor))
                     .setScale(2, RoundingMode.HALF_UP));
-
         } catch (Exception e) {
             log.warn("Error al verificar pólizas para descuentos", e);
             return Mono.just(basePremium);

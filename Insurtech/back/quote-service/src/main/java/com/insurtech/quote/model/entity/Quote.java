@@ -24,6 +24,10 @@ public class Quote {
 
     private Long customerId;
 
+    private String customerEmail;
+    private String customerIdentificationNumber;
+    private String customerIdentificationType;
+
     private String customerNumber;
 
     private QuoteType quoteType;

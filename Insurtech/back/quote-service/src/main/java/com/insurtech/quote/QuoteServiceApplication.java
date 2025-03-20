@@ -9,7 +9,6 @@ import org.springframework.data.mongodb.repository.config.EnableReactiveMongoRep
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableFeignClients
-@EnableReactiveMongoRepositories
 public class QuoteServiceApplication {
 
 	public static void main(String[] args) {

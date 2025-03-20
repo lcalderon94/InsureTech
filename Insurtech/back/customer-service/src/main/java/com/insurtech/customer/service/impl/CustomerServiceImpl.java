@@ -293,6 +293,14 @@ public class CustomerServiceImpl implements CustomerService {
                 identificationNumber, identificationType);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<CustomerDto> getCustomerByIdentification(String identificationNumber, String identificationType) {
+        log.debug("Getting customer by identification: {}/{}", identificationNumber, identificationType);
+        return customerRepository.findByIdentificationNumberAndIdentificationType(identificationNumber, identificationType)
+                .map(mapper::toDto);
+    }
+
     // Métodos auxiliares
 
     private String generateCustomerNumber() {

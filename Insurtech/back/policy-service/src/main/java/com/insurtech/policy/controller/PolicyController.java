@@ -1,5 +1,6 @@
 package com.insurtech.policy.controller;
 
+import com.insurtech.policy.exception.PolicyNotFoundException;
 import com.insurtech.policy.model.dto.PolicyDto;
 import com.insurtech.policy.model.dto.PolicyNoteDto;
 import com.insurtech.policy.model.entity.Policy;
@@ -18,7 +19,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.media.Schema;
-
 
 import jakarta.validation.Valid;
 import java.time.LocalDate;
@@ -50,21 +50,19 @@ public class PolicyController {
             PolicyDto policyDto) {
 
         log.info("Solicitud recibida para crear póliza");
-
-        // El servicio modificado se encargará de resolver el ID del cliente
         PolicyDto createdPolicy = policyService.createPolicy(policyDto);
-
         return new ResponseEntity<>(createdPolicy, HttpStatus.CREATED);
     }
 
+    // Mantener endpoint por ID solo para compatibilidad interna y operaciones de sistema
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
-    @Operation(summary = "Obtener póliza por ID", description = "Obtiene una póliza por su ID")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Obtener póliza por ID (Solo sistema)", description = "Obtiene una póliza por su ID interno (uso restringido)")
     public ResponseEntity<PolicyDto> getPolicyById(@PathVariable Long id) {
-        log.info("Obteniendo póliza por ID: {}", id);
+        log.info("Obteniendo póliza por ID interno: {}", id);
         return policyService.getPolicyById(id)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new PolicyNotFoundException("Póliza no encontrada con ID: " + id));
     }
 
     @GetMapping("/number/{policyNumber}")
@@ -74,7 +72,7 @@ public class PolicyController {
         log.info("Obteniendo póliza por número: {}", policyNumber);
         return policyService.getPolicyByNumber(policyNumber)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> new PolicyNotFoundException("Póliza no encontrada con número: " + policyNumber));
     }
 
     @GetMapping
@@ -97,47 +95,67 @@ public class PolicyController {
         return ResponseEntity.ok(policies);
     }
 
-    @PutMapping("/{id}")
+    // Modificar para usar número de póliza
+    @PutMapping("/number/{policyNumber}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Actualizar póliza", description = "Actualiza una póliza existente")
     public ResponseEntity<PolicyDto> updatePolicy(
-            @PathVariable Long id,
+            @PathVariable String policyNumber,
             @Valid @RequestBody PolicyDto policyDto) {
-        log.info("Actualizando póliza con ID: {}", id);
-        PolicyDto updatedPolicy = policyService.updatePolicy(id, policyDto);
-        return ResponseEntity.ok(updatedPolicy);
+        log.info("Actualizando póliza con número: {}", policyNumber);
+        return policyService.getPolicyByNumber(policyNumber)
+                .map(existingPolicy -> {
+                    PolicyDto updatedPolicy = policyService.updatePolicy(existingPolicy.getId(), policyDto);
+                    return ResponseEntity.ok(updatedPolicy);
+                })
+                .orElseThrow(() -> new PolicyNotFoundException("Póliza no encontrada con número: " + policyNumber));
     }
 
-    @DeleteMapping("/{id}")
+    // Modificar para usar número de póliza
+    @DeleteMapping("/number/{policyNumber}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Eliminar póliza", description = "Elimina una póliza (solo si está en estado DRAFT)")
-    public ResponseEntity<Void> deletePolicy(@PathVariable Long id) {
-        log.info("Eliminando póliza con ID: {}", id);
-        policyService.deletePolicy(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Void> deletePolicy(@PathVariable String policyNumber) {
+        log.info("Eliminando póliza con número: {}", policyNumber);
+        return policyService.getPolicyByNumber(policyNumber)
+                .map(existingPolicy -> {
+                    policyService.deletePolicy(existingPolicy.getId());
+                    return ResponseEntity.noContent().<Void>build();
+                })
+                .orElseThrow(() -> new PolicyNotFoundException("Póliza no encontrada con número: " + policyNumber));
     }
 
-    @PatchMapping("/{id}/status")
+    // Modificar para usar número de póliza
+    @PatchMapping("/number/{policyNumber}/status")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Actualizar estado de póliza", description = "Actualiza el estado de una póliza")
     public ResponseEntity<PolicyDto> updatePolicyStatus(
-            @PathVariable Long id,
+            @PathVariable String policyNumber,
             @RequestParam Policy.PolicyStatus status,
             @RequestParam String reason) {
-        log.info("Actualizando estado a {} para póliza ID: {}", status, id);
-        PolicyDto updatedPolicy = policyService.updatePolicyStatus(id, status, reason);
-        return ResponseEntity.ok(updatedPolicy);
+        log.info("Actualizando estado a {} para póliza número: {}", status, policyNumber);
+        return policyService.getPolicyByNumber(policyNumber)
+                .map(existingPolicy -> {
+                    PolicyDto updatedPolicy = policyService.updatePolicyStatus(existingPolicy.getId(), status, reason);
+                    return ResponseEntity.ok(updatedPolicy);
+                })
+                .orElseThrow(() -> new PolicyNotFoundException("Póliza no encontrada con número: " + policyNumber));
     }
 
-    @PostMapping("/{policyId}/notes")
+    // Modificar para usar número de póliza
+    @PostMapping("/number/{policyNumber}/notes")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Añadir nota a póliza", description = "Añade una nota a una póliza")
     public ResponseEntity<PolicyNoteDto> addPolicyNote(
-            @PathVariable Long policyId,
+            @PathVariable String policyNumber,
             @Valid @RequestBody PolicyNoteDto noteDto) {
-        log.info("Añadiendo nota a póliza ID: {}", policyId);
-        PolicyNoteDto createdNote = policyService.addPolicyNote(policyId, noteDto);
-        return new ResponseEntity<>(createdNote, HttpStatus.CREATED);
+        log.info("Añadiendo nota a póliza número: {}", policyNumber);
+        return policyService.getPolicyByNumber(policyNumber)
+                .map(existingPolicy -> {
+                    PolicyNoteDto createdNote = policyService.addPolicyNote(existingPolicy.getId(), noteDto);
+                    return new ResponseEntity<>(createdNote, HttpStatus.CREATED);
+                })
+                .orElseThrow(() -> new PolicyNotFoundException("Póliza no encontrada con número: " + policyNumber));
     }
 
     @GetMapping("/expiring")

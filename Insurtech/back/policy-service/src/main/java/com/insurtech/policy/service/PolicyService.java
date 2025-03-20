@@ -88,4 +88,8 @@ public interface PolicyService {
      * Valida una póliza de forma concurrente
      */
     CompletableFuture<Boolean> validatePolicyAsync(PolicyDto policyDto);
+
+    List<PolicyDto> getPoliciesByCustomerEmail(String email);
+    List<PolicyDto> getPoliciesByCustomerIdentification(String identificationNumber, String identificationType);
+    List<PolicyDto> getPoliciesByCustomerNumber(String customerNumber);
 }

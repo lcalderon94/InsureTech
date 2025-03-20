@@ -39,21 +39,18 @@ public class CustomerController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN') or hasAuthority('ROLE_AGENT')")
     public ResponseEntity<CustomerDto> createCustomer(@Valid @RequestBody CustomerDto customerDto) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        System.out.println("Usuario autenticado: " + auth.getName());
-        System.out.println("Autoridades: " + auth.getAuthorities());
-        System.out.println("¿Principal es instancia de UserDetails? " + (auth.getPrincipal() instanceof org.springframework.security.core.userdetails.UserDetails));
-
-        // Tu código original...
+        log.info("Usuario autenticado: {}", auth.getName());
         log.info("Creating customer");
         CustomerDto createdCustomer = customerService.createCustomer(customerDto);
         return new ResponseEntity<>(createdCustomer, HttpStatus.CREATED);
     }
 
+    // Mantener el endpoint por ID solo para compatibilidad interna y operaciones de sistema
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
-    @Operation(summary = "Obtener cliente por ID", description = "Obtiene un cliente por su ID")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Obtener cliente por ID (Solo sistema)", description = "Obtiene un cliente por su ID interno (uso restringido)")
     public ResponseEntity<CustomerDto> getCustomerById(@PathVariable Long id) {
-        log.info("Getting customer by ID: {}", id);
+        log.info("Getting customer by internal ID: {}", id);
         return customerService.getCustomerById(id)
                 .map(ResponseEntity::ok)
                 .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con ID: " + id));
@@ -79,6 +76,19 @@ public class CustomerController {
                 .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con email: " + email));
     }
 
+    @GetMapping("/identification")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+    @Operation(summary = "Obtener cliente por identificación", description = "Obtiene un cliente por su tipo e identificación")
+    public ResponseEntity<CustomerDto> getCustomerByIdentification(
+            @RequestParam String identificationNumber,
+            @RequestParam String identificationType) {
+        log.info("Getting customer by identification: {}/{}", identificationNumber, identificationType);
+        return customerService.getCustomerByIdentification(identificationNumber, identificationType)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new CustomerNotFoundException(
+                        "Cliente no encontrado con identificación: " + identificationNumber + " (" + identificationType + ")"));
+    }
+
     @GetMapping("/search")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Buscar clientes", description = "Busca clientes por término de búsqueda")
@@ -99,57 +109,98 @@ public class CustomerController {
         return ResponseEntity.ok(customers);
     }
 
-    @PutMapping("/{id}")
+    // Modificar para usar número de cliente
+    @PutMapping("/number/{customerNumber}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Actualizar cliente", description = "Actualiza un cliente existente")
-    public ResponseEntity<CustomerDto> updateCustomer(
-            @PathVariable Long id,
+    public ResponseEntity<CustomerDto> updateCustomerByNumber(
+            @PathVariable String customerNumber,
             @Valid @RequestBody CustomerDto customerDto) {
-        log.info("Updating customer with ID: {}", id);
-        CustomerDto updatedCustomer = customerService.updateCustomer(id, customerDto);
-        return ResponseEntity.ok(updatedCustomer);
+        log.info("Updating customer with number: {}", customerNumber);
+        return customerService.getCustomerByNumber(customerNumber)
+                .map(existingCustomer -> {
+                    CustomerDto updatedCustomer = customerService.updateCustomer(existingCustomer.getId(), customerDto);
+                    return ResponseEntity.ok(updatedCustomer);
+                })
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con número: " + customerNumber));
     }
 
-    @DeleteMapping("/{id}")
+    // Modificar para usar email
+    @PutMapping("/email/{email}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+    @Operation(summary = "Actualizar cliente por email", description = "Actualiza un cliente existente usando su email")
+    public ResponseEntity<CustomerDto> updateCustomerByEmail(
+            @PathVariable String email,
+            @Valid @RequestBody CustomerDto customerDto) {
+        log.info("Updating customer with email: {}", email);
+        return customerService.getCustomerByEmail(email)
+                .map(existingCustomer -> {
+                    CustomerDto updatedCustomer = customerService.updateCustomer(existingCustomer.getId(), customerDto);
+                    return ResponseEntity.ok(updatedCustomer);
+                })
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con email: " + email));
+    }
+
+    // Modificar para usar número de cliente
+    @DeleteMapping("/number/{customerNumber}")
     @PreAuthorize("hasRole('ADMIN')")
-    @Operation(summary = "Eliminar cliente", description = "Elimina un cliente por su ID")
-    public ResponseEntity<Void> deleteCustomer(@PathVariable Long id) {
-        log.info("Deleting customer with ID: {}", id);
-        customerService.deleteCustomer(id);
-        return ResponseEntity.noContent().build();
+    @Operation(summary = "Eliminar cliente", description = "Elimina un cliente por su número")
+    public ResponseEntity<Void> deleteCustomerByNumber(@PathVariable String customerNumber) {
+        log.info("Deleting customer with number: {}", customerNumber);
+        return customerService.getCustomerByNumber(customerNumber)
+                .map(existingCustomer -> {
+                    customerService.deleteCustomer(existingCustomer.getId());
+                    return ResponseEntity.noContent().<Void>build();
+                })
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con número: " + customerNumber));
     }
 
-    @PatchMapping("/{id}/status")
+    // Modificar para usar número de cliente
+    @PatchMapping("/number/{customerNumber}/status")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Actualizar estado del cliente", description = "Actualiza el estado de un cliente")
-    public ResponseEntity<CustomerDto> updateCustomerStatus(
-            @PathVariable Long id,
+    public ResponseEntity<CustomerDto> updateCustomerStatusByNumber(
+            @PathVariable String customerNumber,
             @RequestParam String status) {
-        log.info("Updating status to {} for customer with ID: {}", status, id);
-        CustomerDto updatedCustomer = customerService.updateCustomerStatus(id, status);
-        return ResponseEntity.ok(updatedCustomer);
+        log.info("Updating status to {} for customer with number: {}", status, customerNumber);
+        return customerService.getCustomerByNumber(customerNumber)
+                .map(existingCustomer -> {
+                    CustomerDto updatedCustomer = customerService.updateCustomerStatus(existingCustomer.getId(), status);
+                    return ResponseEntity.ok(updatedCustomer);
+                })
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con número: " + customerNumber));
     }
 
-    @PostMapping("/{customerId}/segments/{segmentId}")
+    // Modificar para usar número de cliente
+    @PostMapping("/number/{customerNumber}/segments/{segmentId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Añadir cliente a segmento", description = "Añade un cliente a un segmento")
-    public ResponseEntity<CustomerDto> addCustomerToSegment(
-            @PathVariable Long customerId,
+    public ResponseEntity<CustomerDto> addCustomerToSegmentByNumber(
+            @PathVariable String customerNumber,
             @PathVariable Long segmentId) {
-        log.info("Adding customer ID: {} to segment ID: {}", customerId, segmentId);
-        CustomerDto updatedCustomer = customerService.addCustomerToSegment(customerId, segmentId);
-        return ResponseEntity.ok(updatedCustomer);
+        log.info("Adding customer number: {} to segment ID: {}", customerNumber, segmentId);
+        return customerService.getCustomerByNumber(customerNumber)
+                .map(existingCustomer -> {
+                    CustomerDto updatedCustomer = customerService.addCustomerToSegment(existingCustomer.getId(), segmentId);
+                    return ResponseEntity.ok(updatedCustomer);
+                })
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con número: " + customerNumber));
     }
 
-    @DeleteMapping("/{customerId}/segments/{segmentId}")
+    // Modificar para usar número de cliente
+    @DeleteMapping("/number/{customerNumber}/segments/{segmentId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
     @Operation(summary = "Eliminar cliente de segmento", description = "Elimina un cliente de un segmento")
-    public ResponseEntity<CustomerDto> removeCustomerFromSegment(
-            @PathVariable Long customerId,
+    public ResponseEntity<CustomerDto> removeCustomerFromSegmentByNumber(
+            @PathVariable String customerNumber,
             @PathVariable Long segmentId) {
-        log.info("Removing customer ID: {} from segment ID: {}", customerId, segmentId);
-        CustomerDto updatedCustomer = customerService.removeCustomerFromSegment(customerId, segmentId);
-        return ResponseEntity.ok(updatedCustomer);
+        log.info("Removing customer number: {} from segment ID: {}", customerNumber, segmentId);
+        return customerService.getCustomerByNumber(customerNumber)
+                .map(existingCustomer -> {
+                    CustomerDto updatedCustomer = customerService.removeCustomerFromSegment(existingCustomer.getId(), segmentId);
+                    return ResponseEntity.ok(updatedCustomer);
+                })
+                .orElseThrow(() -> new CustomerNotFoundException("Cliente no encontrado con número: " + customerNumber));
     }
 
     @GetMapping("/segments/{segmentId}")

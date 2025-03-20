@@ -296,6 +296,60 @@ public class PolicyServiceImpl implements PolicyService {
         return concurrentPolicyValidator.validatePolicy(policyDto);
     }
 
+    @Override
+    public List<PolicyDto> getPoliciesByCustomerEmail(String email) {
+        // Resolver cliente por email
+        Long customerId = resolveCustomerIdByEmail(email);
+        // Luego buscar pólizas
+        return getPoliciesByCustomerId(customerId);
+    }
+
+    @Override
+    public List<PolicyDto> getPoliciesByCustomerIdentification(String identificationNumber, String identificationType) {
+        log.info("Obteniendo pólizas por identificación de cliente: {}/{}", identificationNumber, identificationType);
+
+        try {
+            // Resolver ID del cliente usando la identificación
+            Map<String, Object> customer = customerClient.getCustomerByIdentification(
+                    identificationNumber, identificationType);
+            Long customerId = ((Number) customer.get("id")).longValue();
+
+            // Recuperar pólizas usando el ID del cliente
+            return getPoliciesByCustomerId(customerId);
+        } catch (Exception e) {
+            log.error("Error al recuperar pólizas por identificación: {}/{}",
+                    identificationNumber, identificationType, e);
+            throw new BusinessValidationException("Error al recuperar cliente con identificación: " +
+                    identificationNumber + " (" + identificationType + ")");
+        }
+    }
+
+    @Override
+    public List<PolicyDto> getPoliciesByCustomerNumber(String customerNumber) {
+        log.info("Obteniendo pólizas por número de cliente: {}", customerNumber);
+
+        try {
+            // Resolver ID del cliente usando el número de cliente
+            Map<String, Object> customer = customerClient.getCustomerByNumber(customerNumber);
+            Long customerId = ((Number) customer.get("id")).longValue();
+
+            // Recuperar pólizas usando el ID del cliente
+            return getPoliciesByCustomerId(customerId);
+        } catch (Exception e) {
+            log.error("Error al recuperar pólizas por número de cliente: {}", customerNumber, e);
+            throw new BusinessValidationException("Error al recuperar cliente con número: " + customerNumber);
+        }
+    }
+
+    private Long resolveCustomerIdByEmail(String email) {
+        try {
+            Map<String, Object> customer = customerClient.getCustomerByEmail(email);
+            return ((Number) customer.get("id")).longValue();
+        } catch (Exception e) {
+            throw new BusinessValidationException("Cliente no encontrado con email: " + email);
+        }
+    }
+
     /**
      * Resuelve el ID del cliente utilizando campos alternativos
      */

@@ -78,4 +78,8 @@ public interface CustomerService {
      * Valida si una identificación ya está registrada
      */
     boolean isIdentificationRegistered(String identificationNumber, String identificationType);
+    /**
+     * Obtiene un cliente por su tipo e identificación
+     */
+    Optional<CustomerDto> getCustomerByIdentification(String identificationNumber, String identificationType);
 }

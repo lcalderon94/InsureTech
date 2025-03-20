@@ -35,5 +35,5 @@ public interface QuoteCalculationService {
     /**
      * Aplica descuentos basados en el perfil del cliente y la solicitud
      */
-    Mono<BigDecimal> applyDiscounts(BigDecimal basePremium, Long customerId, QuoteRequestDto requestDto);
+    Mono<BigDecimal> applyDiscounts(BigDecimal basePremium, String customerEmail, QuoteRequestDto requestDto);
 }

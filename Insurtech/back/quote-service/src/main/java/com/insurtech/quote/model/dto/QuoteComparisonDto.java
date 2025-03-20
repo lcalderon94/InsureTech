@@ -21,6 +21,11 @@ public class QuoteComparisonDto {
 
     private Long customerId;
 
+    private String customerEmail;
+    private String customerNumber;
+    private String customerIdentificationNumber;
+    private String customerIdentificationType;
+
     private LocalDateTime comparisonDate;
 
     private Map<String, QuoteOptionDto> recommendedOptions = new HashMap<>();
