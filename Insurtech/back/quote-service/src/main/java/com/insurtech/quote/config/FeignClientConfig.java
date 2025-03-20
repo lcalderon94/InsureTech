@@ -1,6 +1,6 @@
 package com.insurtech.quote.config;
 
-import com.insurtech.quote.filter.AuthHeaderFilter;
+import com.insurtech.quote.util.TokenContext;
 import feign.RequestInterceptor;
 import feign.codec.ErrorDecoder;
 import org.springframework.context.annotation.Bean;
@@ -10,39 +10,27 @@ import org.springframework.context.annotation.Configuration;
 public class FeignClientConfig {
 
     /**
-     * Interceptor para propagar el token JWT a los microservicios llamados por Feign
+     * Interceptor para propagar el token JWT a las llamadas Feign.
      */
     @Bean
     public RequestInterceptor requestTokenBearerInterceptor() {
         return requestTemplate -> {
-            // Recuperar el token del almacenamiento que fue guardado por el filtro
-            String token = AuthHeaderFilter.getAuthHeader();
-            if (token != null && !token.isEmpty()) {
-                requestTemplate.header("Authorization", token);
+            try {
+                String token = TokenContext.getToken();
+                if (token != null) {
+                    requestTemplate.header("Authorization", token);
+                }
+            } catch (Exception e) {
+                System.err.println("Error al obtener token de autenticación: " + e.getMessage());
             }
         };
     }
 
     /**
-     * Decodificador de errores personalizado para Feign
+     * Decodificador de errores personalizado (puedes ajustarlo según tus necesidades).
      */
     @Bean
     public ErrorDecoder errorDecoder() {
-        return (methodKey, response) -> {
-            int status = response.status();
-
-            if (status >= 400 && status < 500) {
-                String errorMessage;
-                try {
-                    errorMessage = new String(response.body().asInputStream().readAllBytes());
-                } catch (Exception e) {
-                    errorMessage = "Error en la llamada a " + methodKey + ": " + response.reason();
-                }
-
-                return new RuntimeException("Error en servicio remoto: " + errorMessage);
-            }
-
-            return new Exception("Error en la llamada al servicio remoto. Status: " + status);
-        };
+        return new ErrorDecoder.Default();
     }
 }

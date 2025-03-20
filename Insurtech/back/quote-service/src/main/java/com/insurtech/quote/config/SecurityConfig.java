@@ -13,7 +13,6 @@ import org.springframework.security.oauth2.core.OAuth2TokenValidatorResult;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder;
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.oauth2.server.resource.authentication.ReactiveJwtAuthenticationConverter;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import reactor.core.publisher.Flux;
@@ -23,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -71,10 +69,6 @@ public class SecurityConfig {
 
     @Bean
     public ReactiveJwtAuthenticationConverter jwtAuthenticationConverter() {
-        JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("authorities");
-        grantedAuthoritiesConverter.setAuthorityPrefix("");
-
         ReactiveJwtAuthenticationConverter jwtAuthenticationConverter = new ReactiveJwtAuthenticationConverter();
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwt -> {
             Collection<?> authorities = (Collection<?>) jwt.getClaims().getOrDefault("authorities",

@@ -1,3 +1,5 @@
+package com.insurtech.quote.config;
+
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
