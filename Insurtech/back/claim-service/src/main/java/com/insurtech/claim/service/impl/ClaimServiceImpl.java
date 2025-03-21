@@ -93,7 +93,7 @@ public class ClaimServiceImpl implements ClaimService {
         statusHistoryRepository.save(statusHistory);
 
         // Publicar evento de reclamación creada
-        eventProducer.publishClaimCreated(claim);
+        //eventProducer.publishClaimCreated(claim);
 
         log.info("Reclamación creada con éxito. ID: {}, Número: {}", claim.getId(), claim.getClaimNumber());
 

@@ -26,24 +26,30 @@ public class ClaimEventProducer {
     private static final String CLAIM_STATUS_CHANGED_TOPIC = "claim-status-changed";
     private static final String CLAIM_ITEM_ADDED_TOPIC = "claim-item-added";
 
-    private final KafkaTemplate<String, Object> kafkaTemplate;
     private final ClaimEventRepository claimEventRepository;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Value("${app.events.enabled:false}")
     private boolean eventsEnabled;
 
+    @Value("${kafka.enabled:false}")
+    private boolean kafkaEnabled;
+
     @Autowired
     public ClaimEventProducer(
-            KafkaTemplate<String, Object> kafkaTemplate,
+            @Autowired(required = false) KafkaTemplate<String, Object> kafkaTemplate,
             ClaimEventRepository claimEventRepository) {
         this.kafkaTemplate = kafkaTemplate;
         this.claimEventRepository = claimEventRepository;
     }
 
     public void publishClaimCreated(Claim claim) {
-        // Verificar si los eventos están habilitados
-        if (!eventsEnabled) {
-            log.info("Eventos desactivados: se omite la publicación del evento de reclamación creada");
+        // Verificar si los eventos están habilitados y Kafka está disponible
+        if (!eventsEnabled || !kafkaEnabled || kafkaTemplate == null) {
+            log.info("Eventos o Kafka desactivados: se omite la publicación del evento de reclamación creada");
+            // Aún así registramos el evento en la base de datos
+            persistEvent(claim, ClaimEvent.EventType.CLAIM_CREATED,
+                    "Reclamación creada (sin publicar en Kafka)", null, claim.getStatus(), UUID.randomUUID().toString());
             return;
         }
 
@@ -77,9 +83,12 @@ public class ClaimEventProducer {
     }
 
     public void publishClaimUpdated(Claim claim) {
-        // Verificar si los eventos están habilitados
-        if (!eventsEnabled) {
-            log.info("Eventos desactivados: se omite la publicación del evento de reclamación actualizada");
+        // Verificar si los eventos están habilitados y Kafka está disponible
+        if (!eventsEnabled || !kafkaEnabled || kafkaTemplate == null) {
+            log.info("Eventos o Kafka desactivados: se omite la publicación del evento de reclamación actualizada");
+            // Aún así registramos el evento en la base de datos
+            persistEvent(claim, ClaimEvent.EventType.CLAIM_UPDATED,
+                    "Reclamación actualizada (sin publicar en Kafka)", null, null, UUID.randomUUID().toString());
             return;
         }
 
@@ -111,9 +120,12 @@ public class ClaimEventProducer {
     }
 
     public void publishClaimStatusChanged(Claim claim, Claim.ClaimStatus oldStatus) {
-        // Verificar si los eventos están habilitados
-        if (!eventsEnabled) {
-            log.info("Eventos desactivados: se omite la publicación del evento de cambio de estado");
+        // Verificar si los eventos están habilitados y Kafka está disponible
+        if (!eventsEnabled || !kafkaEnabled || kafkaTemplate == null) {
+            log.info("Eventos o Kafka desactivados: se omite la publicación del evento de cambio de estado");
+            // Aún así registramos el evento en la base de datos
+            persistEvent(claim, ClaimEvent.EventType.STATUS_CHANGED,
+                    "Estado cambiado (sin publicar en Kafka)", oldStatus, claim.getStatus(), UUID.randomUUID().toString());
             return;
         }
 
@@ -146,9 +158,12 @@ public class ClaimEventProducer {
     }
 
     public void publishClaimItemAdded(Claim claim, ClaimItem item) {
-        // Verificar si los eventos están habilitados
-        if (!eventsEnabled) {
-            log.info("Eventos desactivados: se omite la publicación del evento de ítem añadido");
+        // Verificar si los eventos están habilitados y Kafka está disponible
+        if (!eventsEnabled || !kafkaEnabled || kafkaTemplate == null) {
+            log.info("Eventos o Kafka desactivados: se omite la publicación del evento de ítem añadido");
+            // Aún así registramos el evento en la base de datos
+            persistEvent(claim, ClaimEvent.EventType.ITEM_ADDED,
+                    "Ítem añadido: " + item.getDescription() + " (sin publicar en Kafka)", null, null, UUID.randomUUID().toString());
             return;
         }
 

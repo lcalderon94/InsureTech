@@ -1,13 +1,12 @@
 spring:
   application:
     name: claim-service
-  # ===== CORREGIDO: Config Server opcional para evitar error de inicio =====
+  # Config Server opcional para evitar error de inicio
   config:
     import: optional:configserver:http://localhost:8888
   cloud:
     config:
       enabled: false  # Deshabilitado temporalmente para desarrollo
-  # ==========================================================================
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/xepdb1
     username: CLAIM_SCHEMA
@@ -27,7 +26,7 @@ spring:
       resourceserver:
         jwt:
           secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
-  # ===== CORREGIDO: Configuración de Spring Batch para Oracle =====
+  # Configuración de Spring Batch para Oracle
   batch:
     job:
       enabled: false   # No ejecutar jobs automáticamente
@@ -37,9 +36,13 @@ spring:
     claim:
       chunk-size: 100
       grid-size: 4
-  # ==========================================================================
-  # Configuración Kafka (valores mínimos para evitar errores)
+  # IMPORTANTE: Desactivar completamente la autoconfiguración de Kafka
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
+  # Deshabilitar la configuración de Kafka
   kafka:
+    enabled: false
     bootstrap-servers: localhost:9092
     consumer:
       group-id: claim-service-group
@@ -49,7 +52,7 @@ spring:
       max-file-size: 10MB
       max-request-size: 10MB
 
-# Propiedad para deshabilitar Kafka (usar con @ConditionalOnProperty en KafkaConfig)
+# Propiedad global para deshabilitar Kafka (usado con @ConditionalOnProperty)
 kafka:
   enabled: false
 
@@ -72,6 +75,7 @@ services:
     url: http://localhost:8085
 
 app:
+  # Desactivar eventos explícitamente
   events:
     enabled: false
   document:
@@ -108,4 +112,5 @@ logging:
     org.springframework.security: INFO
     org.springframework.web: INFO
     org.springframework.batch: INFO
+    org.springframework.kafka: ERROR  # Reducir logs de Kafka
     org.hibernate.SQL: DEBUG
