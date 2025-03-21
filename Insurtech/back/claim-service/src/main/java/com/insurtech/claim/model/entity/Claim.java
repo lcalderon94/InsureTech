@@ -46,7 +46,8 @@ public class Claim {
     @Column(name = "INCIDENT_DATE", nullable = false)
     private LocalDate incidentDate;
 
-    @Column(name = "INCIDENT_DESCRIPTION", length = 4000, nullable = false)
+    @Lob
+    @Column(name = "INCIDENT_DESCRIPTION", nullable = false)
     private String incidentDescription;
 
     @Column(name = "STATUS", nullable = false)
@@ -66,11 +67,11 @@ public class Claim {
     @Column(name = "PAID_AMOUNT", precision = 19, scale = 2)
     private BigDecimal paidAmount;
 
-    @Column(name = "DENIAL_REASON", length = 1000)
-    private String denialReason;
-
     @Column(name = "HANDLER_COMMENTS", length = 2000)
     private String handlerComments;
+
+    @Column(name = "DENIAL_REASON", length = 1000)
+    private String denialReason;
 
     @Column(name = "CUSTOMER_CONTACT_INFO", length = 500)
     private String customerContactInfo;

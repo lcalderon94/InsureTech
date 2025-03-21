@@ -48,7 +48,8 @@ public class ClaimReader implements ItemReader<Claim> {
     private Iterator<Claim> initializeIterator() {
         log.info("Cargando reclamaciones para partición: {} - {}", minValue, maxValue);
 
-        String query = "SELECT * FROM claims WHERE id BETWEEN ? AND ? AND " +
+        // Consulta específica para Oracle
+        String query = "SELECT * FROM CLAIMS WHERE id BETWEEN ? AND ? AND " +
                 "(status = 'UNDER_REVIEW' OR status = 'SUBMITTED') " +
                 "ORDER BY id";
 
@@ -74,9 +75,18 @@ public class ClaimReader implements ItemReader<Claim> {
             claim.setPolicyNumber(rs.getString("policy_number"));
             claim.setCustomerId(rs.getLong("customer_id"));
             claim.setCustomerNumber(rs.getString("customer_number"));
-            claim.setIncidentDate(rs.getDate("incident_date").toLocalDate());
+
+            java.sql.Date incidentDate = rs.getDate("incident_date");
+            if (incidentDate != null) {
+                claim.setIncidentDate(incidentDate.toLocalDate());
+            }
+
             claim.setIncidentDescription(rs.getString("incident_description"));
-            claim.setStatus(Claim.ClaimStatus.valueOf(rs.getString("status")));
+
+            String statusStr = rs.getString("status");
+            if (statusStr != null) {
+                claim.setStatus(Claim.ClaimStatus.valueOf(statusStr));
+            }
 
             String claimTypeStr = rs.getString("claim_type");
             if (claimTypeStr != null) {

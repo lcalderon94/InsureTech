@@ -1,6 +1,13 @@
 spring:
   application:
     name: claim-service
+  # ===== CORREGIDO: Config Server opcional para evitar error de inicio =====
+  config:
+    import: optional:configserver:http://localhost:8888
+  cloud:
+    config:
+      enabled: false  # Deshabilitado temporalmente para desarrollo
+  # ==========================================================================
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/xepdb1
     username: CLAIM_SCHEMA
@@ -20,14 +27,23 @@ spring:
       resourceserver:
         jwt:
           secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
-  # Configuraci�n Kafka (valores m�nimos para evitar errores)
+  # ===== CORREGIDO: Configuración de Spring Batch para Oracle =====
+  batch:
+    job:
+      enabled: false   # No ejecutar jobs automáticamente
+    jdbc:
+      initialize-schema: never   # No inicializar schema automáticamente
+    # Mantener configuración original
+    claim:
+      chunk-size: 100
+      grid-size: 4
+  # ==========================================================================
+  # Configuración Kafka (valores mínimos para evitar errores)
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: claim-service-group
       auto-offset-reset: earliest
-  config:
-    import: "configserver:http://localhost:8888"
   servlet:
     multipart:
       max-file-size: 10MB
@@ -46,11 +62,6 @@ async:
   core-pool-size: 5
   max-pool-size: 10
   queue-capacity: 25
-
-batch:
-  claim:
-    chunk-size: 100
-    grid-size: 4
 
 services:
   customer-service:
@@ -87,6 +98,7 @@ eureka:
   client:
     serviceUrl:
       defaultZone: http://localhost:8761/eureka/
+    enabled: false  # Deshabilitado temporalmente para desarrollo
   instance:
     preferIpAddress: true
 

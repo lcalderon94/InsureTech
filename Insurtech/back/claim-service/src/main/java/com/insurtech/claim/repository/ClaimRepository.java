@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface ClaimRepository extends JpaRepository<Claim, Long> {
+public interface ClaimRepository extends JpaRepository<Claim, Long>, ClaimRepositoryCustom {
 
     Optional<Claim> findByClaimNumber(String claimNumber);
 
@@ -34,12 +34,8 @@ public interface ClaimRepository extends JpaRepository<Claim, Long> {
 
     List<Claim> findByIncidentDateBetween(LocalDate startDate, LocalDate endDate);
 
-    @Query("SELECT c FROM Claim c WHERE " +
-            "LOWER(c.claimNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(c.policyNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(c.customerNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(c.incidentDescription) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
-    Page<Claim> search(@Param("searchTerm") String searchTerm, Pageable pageable);
+    // El método search ahora es implementado por ClaimRepositoryCustomImpl
+    // Se eliminó la anotación @Query problemática
 
     @Query("SELECT c FROM Claim c WHERE " +
             "c.status IN :statuses AND " +

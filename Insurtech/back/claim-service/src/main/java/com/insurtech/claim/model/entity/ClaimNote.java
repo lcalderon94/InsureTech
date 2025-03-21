@@ -36,7 +36,8 @@ public class ClaimNote {
     @Column(name = "TITLE")
     private String title;
 
-    @Column(name = "CONTENT", nullable = false, length = 4000)
+    @Lob
+    @Column(name = "CONTENT", nullable = false)
     private String content;
 
     @Column(name = "IS_IMPORTANT")

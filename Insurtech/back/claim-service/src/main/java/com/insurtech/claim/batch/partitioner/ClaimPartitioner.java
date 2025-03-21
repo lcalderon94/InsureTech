@@ -24,15 +24,11 @@ public class ClaimPartitioner implements Partitioner {
 
         JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
 
-        // Obtiene los IDs mínimo y máximo de las reclamaciones
-        Long minId = jdbcTemplate.queryForObject("SELECT MIN(id) FROM claims", Long.class);
-        Long maxId = jdbcTemplate.queryForObject("SELECT MAX(id) FROM claims", Long.class);
-
-        // Manejo de caso sin datos
-        if (minId == null || maxId == null) {
-            minId = 1L;
-            maxId = 1L;
-        }
+        // Consultas específicas para Oracle
+        Long minId = jdbcTemplate.queryForObject(
+                "SELECT NVL(MIN(id), 1) FROM CLAIMS", Long.class);
+        Long maxId = jdbcTemplate.queryForObject(
+                "SELECT NVL(MAX(id), 1) FROM CLAIMS", Long.class);
 
         // Calcular el tamaño de cada partición
         long targetSize = (maxId - minId) / gridSize + 1;

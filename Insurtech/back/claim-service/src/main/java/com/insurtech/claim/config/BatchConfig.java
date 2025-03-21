@@ -5,40 +5,40 @@ import com.insurtech.claim.batch.reader.ClaimReader;
 import com.insurtech.claim.batch.writer.ClaimWriter;
 import com.insurtech.claim.batch.partitioner.ClaimPartitioner;
 import com.insurtech.claim.model.entity.Claim;
+import jakarta.persistence.EntityManagerFactory;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
-import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
-import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.JobBuilder;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
-import org.springframework.batch.core.partition.support.Partitioner;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import javax.sql.DataSource;
 
 @Configuration
-@EnableBatchProcessing
+@ConditionalOnProperty(name = "spring.batch.job.enabled", havingValue = "true", matchIfMissing = false)
 public class BatchConfig {
 
     @Autowired
-    private JobBuilderFactory jobBuilderFactory;
-
-    @Autowired
-    private StepBuilderFactory stepBuilderFactory;
+    private JobRepository jobRepository;
 
     @Autowired
     private DataSource dataSource;
 
     @Autowired
-    private TaskExecutor taskExecutor;
+    private EntityManagerFactory entityManagerFactory;
 
     @Value("${batch.claim.chunk-size:100}")
     private int chunkSize;
@@ -47,16 +47,24 @@ public class BatchConfig {
     private int gridSize;
 
     @Bean
-    public Partitioner claimPartitioner() {
-        return new ClaimPartitioner();
+    public PlatformTransactionManager batchTransactionManager() {
+        return new DataSourceTransactionManager(dataSource);
     }
 
     @Bean
-    @StepScope
-    public ItemReader<Claim> claimReader(
-            @Value("#{stepExecutionContext['minValue']}") Long minValue,
-            @Value("#{stepExecutionContext['maxValue']}") Long maxValue) {
-        return new ClaimReader(dataSource, minValue, maxValue);
+    public TaskExecutor batchTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(16);
+        executor.setThreadNamePrefix("batch-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean
+    public ClaimPartitioner claimPartitioner() {
+        return new ClaimPartitioner();
     }
 
     @Bean
@@ -71,9 +79,9 @@ public class BatchConfig {
 
     @Bean
     public Step claimProcessingStep() {
-        return stepBuilderFactory.get("claimProcessingStep")
-                .<Claim, Claim>chunk(chunkSize)
-                .reader(claimReader(null, null))
+        return new StepBuilder("claimProcessingStep", jobRepository)
+                .<Claim, Claim>chunk(chunkSize, batchTransactionManager())
+                .reader(new ClaimReader(dataSource, 1L, 100L)) // Valores por defecto
                 .processor(claimProcessor())
                 .writer(claimWriter())
                 .build();
@@ -81,17 +89,17 @@ public class BatchConfig {
 
     @Bean
     public Step partitionStep() {
-        return stepBuilderFactory.get("partitionStep")
+        return new StepBuilder("partitionStep", jobRepository)
                 .partitioner("claimProcessingStep", claimPartitioner())
                 .step(claimProcessingStep())
-                .taskExecutor(taskExecutor)
+                .taskExecutor(batchTaskExecutor())
                 .gridSize(gridSize)
                 .build();
     }
 
     @Bean
     public Job processClaimsJob() {
-        return jobBuilderFactory.get("processClaimsJob")
+        return new JobBuilder("processClaimsJob", jobRepository)
                 .incrementer(new RunIdIncrementer())
                 .flow(partitionStep())
                 .end()
