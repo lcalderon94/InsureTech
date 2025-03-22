@@ -1,5 +1,6 @@
 package com.insurtech.payment.service.impl;
 
+import com.insurtech.payment.model.dto.PaymentMethodDto;
 import com.insurtech.payment.model.dto.PaymentDto;
 import com.insurtech.payment.model.entity.Invoice;
 import com.insurtech.payment.model.entity.Payment;
@@ -99,6 +100,69 @@ public class PaymentBatchServiceImpl implements PaymentBatchService {
             return CompletableFuture.completedFuture(processedPayments);
         } catch (Exception e) {
             log.error("Error general en procesamiento por lotes: {}", e.getMessage());
+
+            // Actualizar estado final con error
+            status.put("endTime", LocalDateTime.now());
+            status.put("status", "FAILED");
+            status.put("errorMessage", e.getMessage());
+
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    /**
+     * Procesa un lote de pagos pendientes con un método de pago específico
+     */
+    @Async
+    public CompletableFuture<List<PaymentDto>> processPendingPaymentsBatch(PaymentMethodDto paymentMethodDto) {
+        log.info("Procesando lote de pagos pendientes con método de pago: {}", paymentMethodDto.getPaymentMethodNumber());
+
+        String batchId = UUID.randomUUID().toString();
+
+        // Inicializar estado
+        Map<String, Object> status = new HashMap<>();
+        status.put("id", batchId);
+        status.put("startTime", LocalDateTime.now());
+        status.put("status", "PROCESSING");
+        status.put("operation", "PENDING_PAYMENTS");
+        batchStatus.put(batchId, status);
+
+        try {
+            // Obtener pagos pendientes para el cliente
+            List<Payment> pendingPayments = paymentRepository.findByCustomerNumberAndStatus(
+                    paymentMethodDto.getCustomerNumber(), Payment.PaymentStatus.PENDING);
+
+            status.put("totalItems", pendingPayments.size());
+            status.put("processedItems", 0);
+            status.put("successCount", 0);
+            status.put("failureCount", 0);
+
+            List<PaymentDto> processedPayments = new ArrayList<>();
+
+            for (Payment payment : pendingPayments) {
+                try {
+                    PaymentDto processedPayment = ((PaymentServiceImpl)paymentService).processPayment(payment.getId(), paymentMethodDto);
+                    processedPayments.add(processedPayment);
+
+                    // Actualizar estado
+                    status.put("processedItems", (int) status.get("processedItems") + 1);
+                    status.put("successCount", (int) status.get("successCount") + 1);
+                } catch (Exception e) {
+                    log.error("Error al procesar pago ID {} en lote: {}", payment.getId(), e.getMessage());
+
+                    // Actualizar estado
+                    status.put("processedItems", (int) status.get("processedItems") + 1);
+                    status.put("failureCount", (int) status.get("failureCount") + 1);
+                }
+            }
+
+            // Actualizar estado final
+            status.put("endTime", LocalDateTime.now());
+            status.put("status", "COMPLETED");
+
+            return CompletableFuture.completedFuture(processedPayments);
+        } catch (Exception e) {
+            log.error("Error general en procesamiento de pagos pendientes: {}", e.getMessage());
 
             // Actualizar estado final con error
             status.put("endTime", LocalDateTime.now());

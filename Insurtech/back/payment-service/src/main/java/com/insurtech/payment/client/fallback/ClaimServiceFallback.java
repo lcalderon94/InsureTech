@@ -42,4 +42,6 @@ public class ClaimServiceFallback implements ClaimServiceClient {
         log.error("Fallback: No se pudo verificar la existencia de la reclamación: {}", claimNumber);
         return ResponseEntity.ok(false);
     }
+
+
 }

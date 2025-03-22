@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Component
 @Slf4j
@@ -42,51 +42,50 @@ public class DistributedTransactionHandler {
 
         try {
             // Adquirir bloqueo distribuido
-            if (!lockService.acquireLock(lockKey)) {
-                log.warn("No se pudo adquirir bloqueo para la transacción: {}", transactionId);
-                throw new IllegalStateException("No se pudo adquirir bloqueo para la transacción: " + transactionId);
-            }
+            return lockService.executeWithLock(lockKey, () -> {
+                // Registrar transacción como iniciada
+                transactionStatusMap.put(transactionId, TransactionStatus.STARTED);
 
-            // Registrar transacción como iniciada
-            transactionStatusMap.put(transactionId, TransactionStatus.STARTED);
+                // Publicar evento de inicio de transacción
+                paymentEventProducer.publishTransactionStartedEvent(transactionId, paymentDto);
 
-            // Publicar evento de inicio de transacción
-            paymentEventProducer.publishTransactionStartedEvent(transactionId, paymentDto);
+                try {
+                    // Ejecutar la operación principal
+                    T result = operation.apply(paymentDto);
 
-            // Ejecutar la operación principal
-            T result = operation.apply(paymentDto);
+                    // Marcar como completado
+                    transactionStatusMap.put(transactionId, TransactionStatus.COMPLETED);
 
-            // Marcar como completado
-            transactionStatusMap.put(transactionId, TransactionStatus.COMPLETED);
+                    // Publicar evento de finalización exitosa
+                    paymentEventProducer.publishTransactionCompletedEvent(transactionId, paymentDto);
 
-            // Publicar evento de finalización exitosa
-            paymentEventProducer.publishTransactionCompletedEvent(transactionId, paymentDto);
+                    return result;
+                } catch (Exception e) {
+                    log.error("Error en transacción distribuida {}: {}", transactionId, e.getMessage());
 
-            return result;
+                    // Marcar como fallido
+                    transactionStatusMap.put(transactionId, TransactionStatus.FAILED);
+
+                    // Ejecutar compensación
+                    try {
+                        compensationAction.accept(e);
+                    } catch (Exception compensationError) {
+                        log.error("Error en acción de compensación para transacción {}: {}",
+                                transactionId, compensationError.getMessage());
+                    }
+
+                    // Publicar evento de fallo
+                    paymentEventProducer.publishTransactionFailedEvent(transactionId, paymentDto, e.getMessage());
+
+                    throw e;
+                } finally {
+                    // Programar limpieza del estado después de un tiempo
+                    scheduleStatusCleanup(transactionId);
+                }
+            });
         } catch (Exception e) {
-            log.error("Error en transacción distribuida {}: {}", transactionId, e.getMessage());
-
-            // Marcar como fallido
-            transactionStatusMap.put(transactionId, TransactionStatus.FAILED);
-
-            // Ejecutar compensación
-            try {
-                compensationAction.accept(e);
-            } catch (Exception compensationError) {
-                log.error("Error en acción de compensación para transacción {}: {}",
-                        transactionId, compensationError.getMessage());
-            }
-
-            // Publicar evento de fallo
-            paymentEventProducer.publishTransactionFailedEvent(transactionId, paymentDto, e.getMessage());
-
+            log.error("Error al ejecutar transacción distribuida {}: {}", transactionId, e.getMessage());
             throw e;
-        } finally {
-            // Liberar bloqueo distribuido
-            lockService.releaseLock(lockKey);
-
-            // Programar limpieza del estado después de un tiempo
-            scheduleStatusCleanup(transactionId);
         }
     }
 

@@ -7,14 +7,12 @@ import lombok.NoArgsConstructor;
 import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * Entidad principal para gestionar los pagos en el sistema
- */
 @Entity
 @Table(name = "PAYMENTS")
 @Data
@@ -70,6 +68,18 @@ public class Payment {
     @Column(name = "PAYMENT_DESCRIPTION")
     private String description;
 
+    @Column(name = "FAILURE_REASON")
+    private String failureReason;
+
+    @Column(name = "RETRY_COUNT")
+    private Integer retryCount = 0;
+
+    @Column(name = "LAST_RETRY_DATE")
+    private LocalDateTime lastRetryDate;
+
+    @Column(name = "COMPLETION_DATE")
+    private LocalDateTime completionDate;
+
     // Relaciones
     @ManyToOne
     @JoinColumn(name = "PAYMENT_METHOD_ID")
@@ -119,7 +129,8 @@ public class Payment {
         COMPLETED,  // Completado con éxito
         FAILED,     // Fallido
         CANCELLED,  // Cancelado
-        REFUNDED    // Reembolsado
+        REFUNDED,   // Reembolsado
+        EXPIRED     // Expirado por tiempo
     }
 
     // Métodos para gestionar relaciones bidireccionales

@@ -1,7 +1,5 @@
 package com.insurtech.payment.task;
 
-import com.insurtech.payment.model.dto.PaymentDto;
-import com.insurtech.payment.model.dto.TransactionDto;
 import com.insurtech.payment.model.entity.Payment;
 import com.insurtech.payment.model.entity.Transaction;
 import com.insurtech.payment.repository.PaymentRepository;
@@ -15,7 +13,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Component
 @Slf4j
@@ -91,22 +88,22 @@ public class PaymentReconciliationTask {
         // Actualizar el estado del pago según corresponda
         if (gatewayStatus == Transaction.TransactionStatus.SUCCESSFUL) {
             paymentService.updatePaymentStatus(
-                    payment.getId(),
+                    payment.getPaymentNumber(),
                     Payment.PaymentStatus.COMPLETED,
                     "Pago completado según reconciliación con pasarela"
             );
             log.info("Pago ID {} actualizado a COMPLETED por reconciliación", payment.getId());
         } else if (gatewayStatus == Transaction.TransactionStatus.FAILED) {
             paymentService.updatePaymentStatus(
-                    payment.getId(),
+                    payment.getPaymentNumber(),
                     Payment.PaymentStatus.FAILED,
                     "Pago fallido según reconciliación con pasarela"
             );
             log.info("Pago ID {} actualizado a FAILED por reconciliación", payment.getId());
-        } else if (payment.getCreationDate().plusHours(24).isBefore(LocalDateTime.now())) {
+        } else if (payment.getCreatedAt().plusHours(24).isBefore(LocalDateTime.now())) {
             // Si ha pasado más de 24 horas y sigue en PENDING o PROCESSING, marcar como expirado
             paymentService.updatePaymentStatus(
-                    payment.getId(),
+                    payment.getPaymentNumber(),
                     Payment.PaymentStatus.EXPIRED,
                     "Pago expirado tras 24 horas sin confirmación"
             );

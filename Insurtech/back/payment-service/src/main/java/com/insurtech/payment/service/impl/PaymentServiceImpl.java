@@ -129,8 +129,11 @@ public class PaymentServiceImpl implements PaymentService {
         return mapper.toDto(savedPayment);
     }
 
+    /**
+     * Procesa un pago específico con un método de pago dado
+     * Este método es usado por el procesador asíncrono
+     */
     @Override
-    @Transactional
     public PaymentResponseDto processPayment(PaymentRequestDto paymentRequestDto) {
         log.info("Procesando pago para cliente número: {}", paymentRequestDto.getCustomerNumber());
 
@@ -142,25 +145,23 @@ public class PaymentServiceImpl implements PaymentService {
         String paymentNumber = createdPayment.getPaymentNumber();
 
         // Obtener método de pago
-        PaymentMethod paymentMethod;
+        PaymentMethod paymentMethod = null;
+        PaymentMethodDto methodDto;
+
         if (paymentRequestDto.getPaymentMethodNumber() != null) {
             paymentMethod = paymentMethodRepository.findByPaymentMethodNumber(paymentRequestDto.getPaymentMethodNumber())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Método de pago no encontrado con número: " + paymentRequestDto.getPaymentMethodNumber()));
+            methodDto = mapper.toDto(paymentMethod);
         } else if (paymentRequestDto.getCardNumber() != null) {
             // Crear método de pago temporal para tarjeta
-            PaymentMethodDto tempMethodDto = createTemporaryCardPaymentMethod(paymentRequestDto);
-            paymentMethod = null; // No se guarda en BD
+            methodDto = createTemporaryCardPaymentMethod(paymentRequestDto);
         } else {
             throw new PaymentProcessingException("Debe proporcionar un método de pago");
         }
 
         // Realizar transacción con la pasarela de pago
         try {
-            PaymentMethodDto methodDto = (paymentMethod != null) ?
-                    mapper.toDto(paymentMethod) :
-                    createTemporaryCardPaymentMethod(paymentRequestDto);
-
             Map<String, String> metadata = new HashMap<>();
             metadata.put("paymentNumber", paymentNumber);
             if (paymentRequestDto.getPolicyNumber() != null) {
@@ -246,6 +247,7 @@ public class PaymentServiceImpl implements PaymentService {
             return errorResponse;
         }
     }
+
 
     @Override
     @Async
@@ -861,4 +863,6 @@ public class PaymentServiceImpl implements PaymentService {
 
         kafkaTemplate.send("payment-events", "cancelled", event);
     }
+
+
 }

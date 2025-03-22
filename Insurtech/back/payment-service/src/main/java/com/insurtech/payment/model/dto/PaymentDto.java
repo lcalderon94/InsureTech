@@ -26,6 +26,8 @@ public class PaymentDto {
 
     private String policyNumber;
 
+    private String claimNumber;
+
     @NotBlank(message = "El número de cliente es obligatorio")
     private String customerNumber;
 
@@ -48,11 +50,19 @@ public class PaymentDto {
 
     private LocalDateTime paymentDate;
 
+    private LocalDateTime completionDate;
+
     private String reference;
 
     private String externalId;
 
     private String description;
+
+    private String failureReason;
+
+    private Integer retryCount;
+
+    private LocalDateTime lastRetryDate;
 
     // Información del método de pago
     private Long paymentMethodId;
