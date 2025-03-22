@@ -1,0 +1,132 @@
+server:
+  port: 8083
+  compression:
+    enabled: true
+  tomcat:
+    max-threads: 200
+    accept-count: 100
+spring:
+  config:
+    import: "optional:configserver:http://config-server:8888"
+  application:
+    name: payment-service
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521/XEPDB1
+    username: PAYMENT_SCHEMA
+    password: ayabrea
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+  jpa:
+    database-platform: org.hibernate.dialect.OracleDialect
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+      jdbc:
+        batch_size: 50
+        order_inserts: true
+        order_updates: true
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: payment-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.insurtech.payment.model.event,java.util
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+  redis:
+    host: redis
+    port: 6379
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          secret: ${JWT_SECRET:TBWACnGHkr8Swl1ghWl1V1SZu4nQV+QWuPUkQ1OZmiDWnrlNXlPvFTXL1TI8zxFd}
+async:
+  core-pool-size: 5
+  max-pool-size: 10
+  queue-capacity: 25
+payment:
+  retry:
+    max-attempts: 3
+    interval-hours: 24
+    batch-size: 50
+  schedule-interval: 14400000
+  reconciliation:
+    interval: 900000
+  batch:
+    concurrency:
+      threshold: 10
+      max-threads: 5
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    diskspace:
+      enabled: true
+    db:
+      enabled: true
+feign:
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: full
+  policy-service:
+    url: http://policy-service:8081
+  customer-service:
+    url: http://customer-service:8082
+  claim-service:
+    url: http://claim-service:8084
+  circuitbreaker:
+    enabled: true
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        slowCallRateThreshold: 50
+        slowCallDurationThreshold: 2s
+    instances:
+      policyService:
+        baseConfig: default
+      customerService:
+        baseConfig: default
+      claimService:
+        baseConfig: default
+logging:
+  level:
+    com.insurtech.payment: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO
+    org.springframework.kafka: INFO
+    feign: INFO

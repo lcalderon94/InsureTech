@@ -20,10 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.YearMonth;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -440,7 +437,7 @@ public class PaymentMethodServiceImpl implements PaymentMethodService {
             notification.put("message", message);
 
             // Enviar notificación
-            customerServiceClient.sendNotification(notification);
+            customerServiceClient.sendNotification("NOTIFICATION-" + UUID.randomUUID().toString(), notification);
         } catch (Exception e) {
             log.error("Error al enviar notificación de método de pago: {}", e.getMessage());
         }

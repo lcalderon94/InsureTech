@@ -71,7 +71,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         // Validar existencia del cliente
         ResponseEntity<Boolean> customerExistsResponse = customerServiceClient.customerExists(paymentDto.getCustomerNumber());
-        if (!customerExistsResponse.getBody()) {
+        if (customerExistsResponse.getBody() == null || !customerExistsResponse.getBody()) {
             throw new ResourceNotFoundException("Cliente no encontrado con número: " + paymentDto.getCustomerNumber());
         }
 

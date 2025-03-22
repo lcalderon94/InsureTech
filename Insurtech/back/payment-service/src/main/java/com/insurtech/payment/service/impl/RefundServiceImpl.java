@@ -673,7 +673,7 @@ public class RefundServiceImpl implements RefundService {
             notification.put("refundNumber", refund.getRefundNumber());
 
             // Enviar notificación
-            customerServiceClient.sendNotification(notification);
+            customerServiceClient.sendNotification("NOTIFICATION-" + UUID.randomUUID().toString(), notification);
         } catch (Exception e) {
             log.error("Error al enviar notificación de reembolso: {}", e.getMessage());
         }

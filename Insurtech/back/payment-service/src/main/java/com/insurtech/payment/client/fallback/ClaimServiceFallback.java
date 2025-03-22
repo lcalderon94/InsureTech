@@ -5,7 +5,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Map;
 
@@ -42,6 +41,4 @@ public class ClaimServiceFallback implements ClaimServiceClient {
         log.error("Fallback: No se pudo verificar la existencia de la reclamación: {}", claimNumber);
         return ResponseEntity.ok(false);
     }
-
-
 }

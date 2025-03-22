@@ -31,7 +31,7 @@ public class CustomerServiceFallback implements CustomerServiceClient {
     }
 
     @Override
-    public ResponseEntity<Void> sendNotification(Map<String, Object> notification) {
+    public ResponseEntity<Void> sendNotification(String jobId, Map<String, Object> notification) {
         log.error("Fallback: No se pudo enviar la notificación al cliente");
         return ResponseEntity.ok().build();
     }

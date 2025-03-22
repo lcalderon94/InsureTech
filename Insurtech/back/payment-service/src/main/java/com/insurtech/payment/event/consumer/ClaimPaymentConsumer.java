@@ -2,6 +2,7 @@ package com.insurtech.payment.event.consumer;
 
 import com.insurtech.payment.client.ClaimServiceClient;
 import com.insurtech.payment.model.dto.PaymentDto;
+import com.insurtech.payment.model.entity.Payment;
 import com.insurtech.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,6 +10,8 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -31,13 +34,24 @@ public class ClaimPaymentConsumer {
             paymentDto.setAmount(event.getAmount());
             paymentDto.setCurrency(event.getCurrency());
             paymentDto.setDescription("Pago de reclamación - " + event.getClaimNumber());
-            paymentDto.setPaymentType("CLAIM_PAYMENT");
+
+            // Usamos el enum correcto en lugar del String
+            paymentDto.setPaymentType(Payment.PaymentType.CLAIM);
+
+            // Necesitamos establecer un valor para concept que es obligatorio
+            paymentDto.setConcept("Pago de reclamación");
 
             PaymentDto createdPayment = paymentService.createPayment(paymentDto);
 
             // Notificar al servicio de reclamaciones que el pago ha sido creado
             try {
-                claimServiceClient.updateClaimPaymentStatus(event.getClaimNumber(), "PAYMENT_CREATED");
+                // Crear un mapa con la información del nuevo estado
+                Map<String, Object> statusUpdateDto = new HashMap<>();
+                statusUpdateDto.put("status", "PAYMENT_CREATED");
+                statusUpdateDto.put("comments", "Pago creado en el sistema");
+
+                // Usar el método updateClaimStatus en lugar de updateClaimPaymentStatus
+                claimServiceClient.updateClaimStatus(event.getClaimNumber(), statusUpdateDto);
             } catch (Exception e) {
                 log.warn("No se pudo actualizar el estado de la reclamación: {}", e.getMessage());
             }
@@ -57,7 +71,13 @@ public class ClaimPaymentConsumer {
         // Si el pago está asociado a una reclamación, actualizar el estado
         if (event.getClaimNumber() != null && !event.getClaimNumber().isEmpty()) {
             try {
-                claimServiceClient.updateClaimPaymentStatus(event.getClaimNumber(), "PAYMENT_COMPLETED");
+                // Crear un mapa con la información del nuevo estado
+                Map<String, Object> statusUpdateDto = new HashMap<>();
+                statusUpdateDto.put("status", "PAYMENT_COMPLETED");
+                statusUpdateDto.put("comments", "Pago completado correctamente");
+
+                // Usar el método updateClaimStatus en lugar de updateClaimPaymentStatus
+                claimServiceClient.updateClaimStatus(event.getClaimNumber(), statusUpdateDto);
                 log.info("Estado de reclamación {} actualizado a PAYMENT_COMPLETED", event.getClaimNumber());
             } catch (Exception e) {
                 log.error("Error al actualizar estado de la reclamación {}: {}",

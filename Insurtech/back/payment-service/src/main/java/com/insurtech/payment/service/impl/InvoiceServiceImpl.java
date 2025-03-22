@@ -23,10 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -332,7 +329,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         notification.put("attachmentName", "factura_" + invoice.getInvoiceNumber() + ".pdf");
 
         // Enviar notificación a través del servicio de clientes
-        customerServiceClient.sendNotification(notification);
+        customerServiceClient.sendNotification("NOTIFICATION-" + UUID.randomUUID().toString(), notification);
 
         log.info("Factura {} enviada por email a {}", invoiceNumber, email);
     }
@@ -540,7 +537,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             notification.put("invoiceNumber", invoice.getInvoiceNumber());
 
             // Enviar notificación
-            customerServiceClient.sendNotification(notification);
+            customerServiceClient.sendNotification("NOTIFICATION-" + UUID.randomUUID().toString(), notification);
         } catch (Exception e) {
             log.error("Error al enviar notificación de factura: {}", e.getMessage());
         }
