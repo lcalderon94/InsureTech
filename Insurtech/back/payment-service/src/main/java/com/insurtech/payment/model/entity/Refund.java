@@ -11,9 +11,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Entidad para gestionar los reembolsos en el sistema
- */
 @Entity
 @Table(name = "REFUNDS")
 @Data
@@ -63,6 +60,8 @@ public class Refund {
     @Column(name = "REFUND_REASON", nullable = false)
     private String reason;
 
+    // Se indica que este campo es un LOB para mapear el CLOB de la BD
+    @Lob
     @Column(name = "REFUND_DESCRIPTION")
     private String description;
 

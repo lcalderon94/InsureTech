@@ -52,8 +52,7 @@ public class PaymentMethod {
     @Column(name = "IS_VERIFIED")
     private boolean isVerified;
 
-    // Campos específicos según el tipo de método de pago
-    // Tarjeta de crédito/débito
+    // Campos específicos para tarjeta de crédito/débito
     @Column(name = "CARD_HOLDER_NAME")
     private String cardHolderName;
 
@@ -63,10 +62,34 @@ public class PaymentMethod {
     @Column(name = "CARD_TYPE")
     private String cardType;
 
-    @Column(name = "CARD_EXPIRY_DATE")
-    private YearMonth cardExpiryDate;
+    // Se mapean las columnas de mes y año de caducidad de la tarjeta
+    @Column(name = "CARD_EXPIRY_MONTH")
+    private Integer cardExpiryMonth;
 
-    // Cuenta bancaria
+    @Column(name = "CARD_EXPIRY_YEAR")
+    private Integer cardExpiryYear;
+
+    // Métodos transitorios para trabajar con YearMonth
+
+    @Transient
+    public YearMonth getCardExpiryDate() {
+        if (cardExpiryMonth != null && cardExpiryYear != null) {
+            return YearMonth.of(cardExpiryYear, cardExpiryMonth);
+        }
+        return null;
+    }
+
+    public void setCardExpiryDate(YearMonth expiry) {
+        if (expiry != null) {
+            this.cardExpiryMonth = expiry.getMonthValue();
+            this.cardExpiryYear = expiry.getYear();
+        } else {
+            this.cardExpiryMonth = null;
+            this.cardExpiryYear = null;
+        }
+    }
+
+    // Campos para cuenta bancaria
     @Column(name = "BANK_NAME")
     private String bankName;
 
@@ -79,7 +102,7 @@ public class PaymentMethod {
     @Column(name = "ACCOUNT_TYPE")
     private String accountType;
 
-    // Monedero electrónico
+    // Campos para monedero electrónico
     @Column(name = "WALLET_PROVIDER")
     private String walletProvider;
 

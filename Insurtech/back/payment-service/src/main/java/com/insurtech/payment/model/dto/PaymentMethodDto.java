@@ -31,6 +31,8 @@ public class PaymentMethodDto {
     @NotBlank(message = "El nombre del método de pago es obligatorio")
     private String name;
 
+    private String paymentToken;
+
     private boolean isDefault;
 
     private boolean isActive = true;

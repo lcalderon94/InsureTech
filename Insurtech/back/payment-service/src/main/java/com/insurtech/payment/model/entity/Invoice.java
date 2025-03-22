@@ -71,6 +71,8 @@ public class Invoice {
     @Column(name = "PAYMENT_DATE")
     private LocalDateTime paymentDate;
 
+    // Se indica que este campo es un LOB para mapear el CLOB de la BD
+    @Lob
     @Column(name = "INVOICE_DESCRIPTION")
     private String description;
 
@@ -108,13 +110,13 @@ public class Invoice {
     }
 
     public enum InvoiceStatus {
-        DRAFT,     // Borrador
-        ISSUED,    // Emitida
-        PENDING,   // Pendiente de pago
-        PARTIALLY_PAID, // Parcialmente pagada
-        PAID,      // Pagada completamente
-        CANCELLED, // Cancelada
-        OVERDUE    // Vencida
+        DRAFT,           // Borrador
+        ISSUED,          // Emitida
+        PENDING,         // Pendiente de pago
+        PARTIALLY_PAID,  // Parcialmente pagada
+        PAID,            // Pagada completamente
+        CANCELLED,       // Cancelada
+        OVERDUE          // Vencida
     }
 
     // Métodos para gestionar relaciones bidireccionales

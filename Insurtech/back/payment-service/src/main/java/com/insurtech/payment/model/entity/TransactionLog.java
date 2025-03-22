@@ -9,10 +9,6 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-/**
- * Entidad para registrar todas las operaciones relacionadas con transacciones
- * Proporciona una pista de auditoría detallada para fines de seguridad y cumplimiento
- */
 @Entity
 @Table(name = "TRANSACTION_LOGS")
 @Data
@@ -55,7 +51,9 @@ public class TransactionLog {
     @Column(name = "USER_AGENT")
     private String userAgent;
 
-    @Column(name = "DETAILS", length = 4000)
+    // Se indica que este campo es un LOB para mapear el CLOB de la BD
+    @Lob
+    @Column(name = "DETAILS")
     private String details;
 
     @Column(name = "ERROR_MESSAGE")
@@ -76,13 +74,13 @@ public class TransactionLog {
     public enum LogType {
         PAYMENT_CREATION,     // Creación de pago
         PAYMENT_UPDATE,       // Actualización de pago
-        PAYMENT_STATUS_CHANGE, // Cambio de estado de pago
+        PAYMENT_STATUS_CHANGE,// Cambio de estado de pago
         TRANSACTION_PROCESS,  // Procesamiento de transacción
         TRANSACTION_RESPONSE, // Respuesta de la pasarela de pago
         REFUND_REQUEST,       // Solicitud de reembolso
         REFUND_PROCESS,       // Procesamiento de reembolso
         ERROR,                // Error en el procesamiento
         SECURITY,             // Evento de seguridad
-        SYSTEM               // Evento del sistema
+        SYSTEM                // Evento del sistema
     }
 }

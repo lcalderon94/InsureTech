@@ -65,6 +65,8 @@ public class Payment {
     @Column(name = "EXTERNAL_ID")
     private String externalId;
 
+    // Se indica que este campo es un LOB para mapear el CLOB de la BD
+    @Lob
     @Column(name = "PAYMENT_DESCRIPTION")
     private String description;
 
