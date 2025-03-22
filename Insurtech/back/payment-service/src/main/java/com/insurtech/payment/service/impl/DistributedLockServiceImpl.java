@@ -364,4 +364,81 @@ public class PaymentGatewayServiceImpl implements PaymentGatewayService {
         } else {
             // En modo producción, integrar con pasarela real
             // TODO: Implementar integración con pasarela real
-            throw new UnsupportedOperationException("Integración
+            throw new UnsupportedOperationException("Integración con pasarela real no implementada");
+        }
+    }
+
+    /**
+     * Método privado para validar el método de pago
+     */
+    private void validatePaymentMethod(PaymentMethodDto paymentMethodDto) {
+        if (paymentMethodDto == null) {
+            throw new PaymentProcessingException("Método de pago no especificado");
+        }
+
+        // Validar según el tipo de método de pago
+        if (paymentMethodDto.getType() == null) {
+            throw new PaymentProcessingException("Tipo de método de pago no especificado");
+        }
+
+        switch (paymentMethodDto.getType()) {
+            case CREDIT_CARD:
+                if (paymentMethodDto.getCardNumber() == null || paymentMethodDto.getCardNumber().isEmpty()) {
+                    throw new PaymentProcessingException("Número de tarjeta no especificado");
+                }
+                if (paymentMethodDto.getExpiryMonth() == null || paymentMethodDto.getExpiryYear() == null) {
+                    throw new PaymentProcessingException("Fecha de caducidad no especificada");
+                }
+                break;
+            case BANK_ACCOUNT:
+                if (paymentMethodDto.getAccountNumber() == null || paymentMethodDto.getAccountNumber().isEmpty()) {
+                    throw new PaymentProcessingException("Número de cuenta no especificado");
+                }
+                break;
+            case TOKEN:
+                if (paymentMethodDto.getToken() == null || paymentMethodDto.getToken().isEmpty()) {
+                    throw new PaymentProcessingException("Token de pago no especificado");
+                }
+                break;
+            default:
+                throw new PaymentProcessingException("Tipo de método de pago no soportado: " + paymentMethodDto.getType());
+        }
+    }
+
+    /**
+     * Método privado para simular la respuesta de la pasarela de pago
+     */
+    private void simulatePaymentGatewayResponse(TransactionDto transactionDto, PaymentMethodDto paymentMethodDto) {
+        Random random = new Random();
+        boolean success = random.nextDouble() < successRate;
+
+        if (success) {
+            transactionDto.setStatus(Transaction.TransactionStatus.SUCCESSFUL);
+            transactionDto.setAuthorizationCode(generateAuthCode());
+            transactionDto.setGatewayReference("REF_" + UUID.randomUUID().toString().substring(0, 8));
+        } else {
+            transactionDto.setStatus(Transaction.TransactionStatus.FAILED);
+            transactionDto.setErrorCode("PAYMENT_DECLINED");
+            transactionDto.setErrorDescription("Transacción rechazada por la entidad emisora");
+        }
+
+        // Simular tiempo de procesamiento
+        try {
+            Thread.sleep(random.nextInt(500) + 100);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Método privado para generar códigos de autorización aleatorios
+     */
+    private String generateAuthCode() {
+        Random random = new Random();
+        StringBuilder authCode = new StringBuilder();
+        for (int i = 0; i < 6; i++) {
+            authCode.append(random.nextInt(10));
+        }
+        return authCode.toString();
+    }
+}

@@ -1,6 +1,5 @@
 package com.insurtech.payment.config;
 
-import com.insurtech.payment.exception.PaymentServiceErrorDecoder;
 import feign.Logger;
 import feign.RequestInterceptor;
 import org.springframework.context.annotation.Bean;
