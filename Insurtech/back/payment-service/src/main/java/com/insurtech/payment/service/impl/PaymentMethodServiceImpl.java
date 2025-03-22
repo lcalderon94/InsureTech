@@ -338,9 +338,8 @@ public class PaymentMethodServiceImpl implements PaymentMethodService {
     @Override
     public List<PaymentMethodDto> findCardsExpiringInMonth(int month, int year) {
         YearMonth expiryMonth = YearMonth.of(year, month);
-
         return paymentMethodRepository.findCardsByExpiryMonth(expiryMonth).stream()
-                .map(mapper::toDto)
+                .map(method -> mapper.mapToDto(method, PaymentMethodDto.class))
                 .collect(Collectors.toList());
     }
 

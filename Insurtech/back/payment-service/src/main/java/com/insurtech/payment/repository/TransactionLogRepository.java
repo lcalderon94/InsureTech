@@ -72,12 +72,12 @@ public interface TransactionLogRepository extends JpaRepository<TransactionLog, 
      * Búsqueda por términos en varios campos
      */
     @Query("SELECT tl FROM TransactionLog tl WHERE " +
-            "LOWER(tl.transactionId) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(tl.paymentNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(tl.refundNumber) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(tl.action) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(tl.details) LIKE LOWER(CONCAT('%', :searchTerm, '%')) OR " +
-            "LOWER(tl.errorMessage) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
+            "LOWER(tl.transactionId) LIKE CONCAT('%', LOWER(:searchTerm), '%') OR " +
+            "LOWER(tl.paymentNumber) LIKE CONCAT('%', LOWER(:searchTerm), '%') OR " +
+            "LOWER(tl.refundNumber) LIKE CONCAT('%', LOWER(:searchTerm), '%') OR " +
+            "LOWER(tl.action) LIKE CONCAT('%', LOWER(:searchTerm), '%') OR " +
+            "LOWER(tl.details) LIKE CONCAT('%', LOWER(:searchTerm), '%') OR " +
+            "LOWER(tl.errorMessage) LIKE CONCAT('%', LOWER(:searchTerm), '%')")
     Page<TransactionLog> searchLogs(@Param("searchTerm") String searchTerm, Pageable pageable);
 
     /**

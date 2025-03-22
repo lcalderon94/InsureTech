@@ -32,7 +32,7 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Lo
 
     List<PaymentMethod> findByCustomerNumberAndIsVerifiedTrue(String customerNumber);
 
-    @Query("SELECT pm FROM PaymentMethod pm WHERE pm.isActive = true AND pm.methodType IN ('CREDIT_CARD', 'DEBIT_CARD') AND pm.cardExpiryDate = :expiryMonth")
+    @Query("SELECT pm FROM PaymentMethod pm WHERE pm.isActive = true AND pm.methodType IN ('CREDIT_CARD', 'DEBIT_CARD') AND pm.cardExpiryYear = :#{#expiryMonth.year()} AND pm.cardExpiryMonth = :#{#expiryMonth.monthValue()}")
     List<PaymentMethod> findCardsByExpiryMonth(@Param("expiryMonth") YearMonth expiryMonth);
 
     @Query("SELECT pm FROM PaymentMethod pm WHERE pm.customerNumber = :customerNumber AND pm.maskedCardNumber LIKE %:lastFourDigits")
@@ -50,6 +50,6 @@ public interface PaymentMethodRepository extends JpaRepository<PaymentMethod, Lo
             "LOWER(pm.name) LIKE LOWER(CONCAT('%', :searchTerm, '%'))")
     Page<PaymentMethod> searchPaymentMethods(@Param("searchTerm") String searchTerm, Pageable pageable);
 
-    @Query("SELECT pm FROM PaymentMethod pm WHERE pm.isActive = true AND pm.methodType IN ('CREDIT_CARD', 'DEBIT_CARD') AND pm.cardExpiryDate < :currentMonth")
+    @Query("SELECT pm FROM PaymentMethod pm WHERE pm.isActive = true AND pm.methodType IN ('CREDIT_CARD', 'DEBIT_CARD') AND (pm.cardExpiryYear < :#{#currentMonth.year()} OR (pm.cardExpiryYear = :#{#currentMonth.year()} AND pm.cardExpiryMonth < :#{#currentMonth.monthValue()}))")
     List<PaymentMethod> findExpiredCards(@Param("currentMonth") YearMonth currentMonth);
 }
