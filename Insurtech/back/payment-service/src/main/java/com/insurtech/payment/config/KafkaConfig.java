@@ -14,10 +14,27 @@ import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.*;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
-import org.springframework.kafka.listener.SeekToCurrentErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.springframework.util.backoff.FixedBackOff;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
+import org.springframework.kafka.listener.CommonErrorHandler;
+import org.springframework.kafka.listener.DefaultErrorHandler;
+import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
+import org.springframework.kafka.support.converter.RecordMessageConverter;
+import org.springframework.kafka.support.converter.StringJsonMessageConverter;
+import org.springframework.kafka.support.serializer.JsonSerializer;
+import org.springframework.kafka.support.serializer.JsonDeserializer;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.ProducerFactory;
+import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.apache.kafka.common.TopicPartition;  // Para TopicPartition
+import org.springframework.kafka.support.TopicPartitionOffset;  // Para TopicPartitionOffset
 
 import java.util.HashMap;
 import java.util.Map;
@@ -109,10 +126,12 @@ public class KafkaConfig {
 
         // Configuración de reintentos y gestión de errores
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
-                (r, e) -> new org.springframework.kafka.support.TopicPartitionOffset(
-                        r.topic() + ".DLT", r.partition()));
+                (record, exception) -> new TopicPartition(record.topic() + ".DLT", record.partition()));
 
-        factory.setErrorHandler(new SeekToCurrentErrorHandler(recoverer, new FixedBackOff(3000L, 3)));
+        // Usar DefaultErrorHandler en lugar de SeekToCurrentErrorHandler (obsoleto)
+        DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer,
+                new FixedBackOff(3000L, 3));
+        factory.setCommonErrorHandler(errorHandler); // Use setCommonErrorHandler en lugar de setErrorHandler
 
         // Configuración de modo de confirmación manual
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);

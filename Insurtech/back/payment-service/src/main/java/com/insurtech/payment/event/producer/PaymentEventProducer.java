@@ -11,8 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Component;
-import org.springframework.util.concurrent.ListenableFuture;
-import org.springframework.util.concurrent.ListenableFutureCallback;
+
+import java.util.concurrent.CompletableFuture;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -130,21 +130,21 @@ public class PaymentEventProducer {
         sendEvent(TRANSACTION_FAILED_TOPIC, transactionId, paymentDto);
     }
 
+    // Modifique el método sendEvent en PaymentEventProducer.java
+    // In PaymentEventProducer.java or similar class
     private void sendEvent(String topic, String key, Object event) {
         try {
-            ListenableFuture<SendResult<String, Object>> future = kafkaTemplate.send(topic, key, event);
+            // Spring Kafka 3.x returns CompletableFuture instead of ListenableFuture
+            CompletableFuture<SendResult<String, Object>> future = kafkaTemplate.send(topic, key, event);
 
-            future.addCallback(new ListenableFutureCallback<SendResult<String, Object>>() {
-                @Override
-                public void onSuccess(SendResult<String, Object> result) {
+            // Use CompletableFuture methods instead of ListenableFuture callbacks
+            future.whenComplete((result, exception) -> {
+                if (exception == null) {
                     log.debug("Evento enviado a {} con clave {}: [{}]",
                             topic, key, result.getRecordMetadata().offset());
-                }
-
-                @Override
-                public void onFailure(Throwable ex) {
+                } else {
                     log.error("Error al enviar evento a {} con clave {}: {}",
-                            topic, key, ex.getMessage());
+                            topic, key, exception.getMessage());
                 }
             });
         } catch (Exception e) {

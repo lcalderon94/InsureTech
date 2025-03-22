@@ -1,6 +1,7 @@
 package com.insurtech.payment.event.consumer;
 
 import com.insurtech.payment.model.dto.PaymentDto;
+import com.insurtech.payment.model.entity.Payment;
 import com.insurtech.payment.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,7 @@ public class PolicyPaymentConsumer {
             paymentDto.setAmount(event.getAmount());
             paymentDto.setCurrency(event.getCurrency());
             paymentDto.setDescription("Prima de seguro - " + event.getPolicyNumber());
-            paymentDto.setPaymentType("PREMIUM");
+            paymentDto.setPaymentType(Payment.PaymentType.PREMIUM);
             paymentDto.setDueDate(event.getDueDate());
 
             PaymentDto createdPayment = paymentService.createPayment(paymentDto);

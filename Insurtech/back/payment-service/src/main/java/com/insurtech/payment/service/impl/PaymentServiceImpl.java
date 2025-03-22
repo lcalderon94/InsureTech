@@ -129,6 +129,44 @@ public class PaymentServiceImpl implements PaymentService {
         return mapper.toDto(savedPayment);
     }
 
+    @Override
+    public PaymentDto processPayment(Long paymentId, PaymentMethodDto paymentMethodDto) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException("Pago no encontrado con ID: " + paymentId));
+
+        // Convertir entidad a DTO
+        PaymentDto paymentDto = mapper.toDto(payment);
+
+        // Crear objeto de solicitud con los datos necesarios
+        PaymentRequestDto requestDto = new PaymentRequestDto();
+        requestDto.setCustomerNumber(payment.getCustomerNumber());
+        requestDto.setPolicyNumber(payment.getPolicyNumber());
+        requestDto.setAmount(payment.getAmount());
+        requestDto.setCurrency(payment.getCurrency());
+        requestDto.setConcept(payment.getConcept());
+        requestDto.setDescription(payment.getDescription());
+        requestDto.setPaymentMethodNumber(paymentMethodDto.getPaymentMethodNumber());
+
+        // Procesar el pago
+        PaymentResponseDto responseDto = processPayment(requestDto);
+
+        // Si el procesamiento fue exitoso, actualizar el estado del pago original
+        if (responseDto.isSuccessful()) {
+            payment.setStatus(Payment.PaymentStatus.COMPLETED);
+            payment.setPaymentDate(LocalDateTime.now());
+            payment.setCompletionDate(LocalDateTime.now());
+            payment.setUpdatedAt(LocalDateTime.now());
+            payment = paymentRepository.save(payment);
+        } else {
+            payment.setStatus(Payment.PaymentStatus.FAILED);
+            payment.setFailureReason(responseDto.getErrorMessage());
+            payment.setUpdatedAt(LocalDateTime.now());
+            payment = paymentRepository.save(payment);
+        }
+
+        return mapper.toDto(payment);
+    }
+
     /**
      * Procesa un pago específico con un método de pago dado
      * Este método es usado por el procesador asíncrono

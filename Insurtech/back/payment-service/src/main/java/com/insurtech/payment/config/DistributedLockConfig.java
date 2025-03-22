@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.jdbc.lock.DefaultLockRepository;
 import org.springframework.integration.jdbc.lock.JdbcLockRegistry;
 import org.springframework.integration.jdbc.lock.LockRepository;
+import java.util.function.Function;
+
 
 import javax.sql.DataSource;
 

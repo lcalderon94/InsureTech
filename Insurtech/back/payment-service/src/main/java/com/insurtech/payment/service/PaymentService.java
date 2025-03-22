@@ -1,9 +1,6 @@
 package com.insurtech.payment.service;
 
-import com.insurtech.payment.model.dto.PaymentDto;
-import com.insurtech.payment.model.dto.PaymentRequestDto;
-import com.insurtech.payment.model.dto.PaymentResponseDto;
-import com.insurtech.payment.model.dto.TransactionDto;
+import com.insurtech.payment.model.dto.*;
 import com.insurtech.payment.model.entity.Payment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +22,8 @@ public interface PaymentService {
      */
     PaymentDto createPayment(PaymentDto paymentDto);
 
+    PaymentDto processPayment(Long paymentId, PaymentMethodDto paymentMethodDto);
+    
     /**
      * Procesa un pago nuevo (crea y procesa en un solo paso)
      */

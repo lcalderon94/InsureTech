@@ -107,6 +107,7 @@ public class FailedPaymentRetryTask {
         // Convertir a DTO y reintentar el pago
         PaymentMethodDto paymentMethodDto = mapper.mapToDto(defaultPaymentMethod.get(), PaymentMethodDto.class);
 
+
         try {
             // Cambiar el estado a PENDING antes de reintentar
             payment.setStatus(Payment.PaymentStatus.PENDING);

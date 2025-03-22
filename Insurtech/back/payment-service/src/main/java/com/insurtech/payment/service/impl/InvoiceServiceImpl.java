@@ -195,6 +195,30 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
     @Override
+    public byte[] generateInvoiceReport(LocalDateTime startDate, LocalDateTime endDate, String format) {
+        // Obtener facturas en el rango de fechas
+        List<Invoice> invoices = invoiceRepository.findByIssueDateBetween(startDate, endDate);
+
+        // Generar informe según formato solicitado
+        String reportContent = "Informe de facturas del " + startDate + " al " + endDate + "\n";
+        reportContent += "Total de facturas: " + invoices.size() + "\n";
+
+        BigDecimal totalAmount = invoices.stream()
+                .map(Invoice::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        reportContent += "Monto total: " + totalAmount + "\n\n";
+
+        for (Invoice invoice : invoices) {
+            reportContent += "Factura #" + invoice.getInvoiceNumber() +
+                    " - Cliente: " + invoice.getCustomerNumber() +
+                    " - Monto: " + invoice.getTotalAmount() +
+                    " - Estado: " + invoice.getStatus() + "\n";
+        }
+
+        return reportContent.getBytes();
+    }
+
+    @Override
     @Transactional
     public InvoiceDto registerPartialPayment(String invoiceNumber, BigDecimal paidAmount, LocalDateTime paymentDate) {
         return lockService.executeWithLock("invoice_payment_" + invoiceNumber, () -> {

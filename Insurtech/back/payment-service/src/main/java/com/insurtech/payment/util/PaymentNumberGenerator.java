@@ -49,4 +49,40 @@ public class PaymentNumberGenerator {
 
         return prefix + "-" + dateComponent + "-" + sequenceComponent + "-" + randomComponent;
     }
+
+    /**
+     * Genera un número de factura único
+     */
+    public String generateInvoiceNumber() {
+        LocalDateTime now = LocalDateTime.now();
+        String dateComponent = now.format(DATE_FORMAT);
+        String sequenceComponent = String.format("%04d", SEQUENCE.getAndIncrement());
+        String randomComponent = String.format("%03d", RANDOM.nextInt(1000));
+
+        return "INV-" + dateComponent + "-" + sequenceComponent + "-" + randomComponent;
+    }
+
+    /**
+     * Genera un número de método de pago único
+     */
+    public String generatePaymentMethodNumber() {
+        LocalDateTime now = LocalDateTime.now();
+        String dateComponent = now.format(DATE_FORMAT);
+        String sequenceComponent = String.format("%04d", SEQUENCE.getAndIncrement());
+        String randomComponent = String.format("%03d", RANDOM.nextInt(1000));
+
+        return "PMT-" + dateComponent + "-" + sequenceComponent + "-" + randomComponent;
+    }
+
+    /**
+     * Genera un número de reembolso único
+     */
+    public String generateRefundNumber() {
+        LocalDateTime now = LocalDateTime.now();
+        String dateComponent = now.format(DATE_FORMAT);
+        String sequenceComponent = String.format("%04d", SEQUENCE.getAndIncrement());
+        String randomComponent = String.format("%03d", RANDOM.nextInt(1000));
+
+        return "REF-" + dateComponent + "-" + sequenceComponent + "-" + randomComponent;
+    }
 }

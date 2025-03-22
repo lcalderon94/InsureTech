@@ -1,7 +1,10 @@
 package com.insurtech.payment.service.impl;
 
+import com.insurtech.payment.exception.PaymentNotFoundException;
 import com.insurtech.payment.model.dto.PaymentMethodDto;
 import com.insurtech.payment.model.dto.PaymentDto;
+import com.insurtech.payment.model.dto.PaymentRequestDto;
+import com.insurtech.payment.model.dto.PaymentResponseDto;
 import com.insurtech.payment.model.entity.Invoice;
 import com.insurtech.payment.model.entity.Payment;
 import com.insurtech.payment.model.entity.Transaction;
@@ -110,6 +113,8 @@ public class PaymentBatchServiceImpl implements PaymentBatchService {
         }
     }
 
+
+
     /**
      * Procesa un lote de pagos pendientes con un método de pago específico
      */
@@ -141,8 +146,21 @@ public class PaymentBatchServiceImpl implements PaymentBatchService {
 
             for (Payment payment : pendingPayments) {
                 try {
-                    PaymentDto processedPayment = ((PaymentServiceImpl)paymentService).processPayment(payment.getId(), paymentMethodDto);
-                    processedPayments.add(processedPayment);
+                    PaymentDto paymentDto = mapper.toDto(payment);
+                    PaymentRequestDto requestDto = new PaymentRequestDto();
+                    requestDto.setCustomerNumber(payment.getCustomerNumber());
+                    requestDto.setPolicyNumber(payment.getPolicyNumber());
+                    requestDto.setAmount(payment.getAmount());
+                    requestDto.setCurrency(payment.getCurrency());
+                    requestDto.setConcept(payment.getConcept());
+                    requestDto.setDescription(payment.getDescription());
+                    requestDto.setPaymentMethodNumber(paymentMethodDto.getPaymentMethodNumber());
+
+                    PaymentResponseDto response = paymentService.processPayment(requestDto);
+                    PaymentDto processed = paymentService.getPaymentByNumber(payment.getPaymentNumber())
+                            .orElseThrow(() -> new PaymentNotFoundException("Pago no encontrado: " + payment.getPaymentNumber()));
+
+                    processedPayments.add(processed);
 
                     // Actualizar estado
                     status.put("processedItems", (int) status.get("processedItems") + 1);

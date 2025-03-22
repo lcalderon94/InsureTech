@@ -42,6 +42,20 @@ public class EntityDtoMapper {
         return (T) modelMapper.map(dto, getTargetEntityClass(dto));
     }
 
+
+    public RefundDto mapToDto(Refund refund) {
+        return modelMapper.map(refund, RefundDto.class);
+    }
+
+    // Y este para PaymentMethodDto
+    public PaymentMethodDto mapToDto(PaymentMethod paymentMethod) {
+        return modelMapper.map(paymentMethod, PaymentMethodDto.class);
+    }
+
+    public <T, D> D mapToDto(T entity, Class<D> dtoClass) {
+        return modelMapper.map(entity, dtoClass);
+    }
+
     /**
      * Mapea una colección de entidades a una lista de DTOs
      */

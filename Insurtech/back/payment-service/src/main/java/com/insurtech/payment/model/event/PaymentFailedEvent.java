@@ -13,10 +13,13 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class PaymentFailedEvent {
     private String eventId;
+    private Long paymentId;
+    private LocalDateTime timestamp;
     private String paymentNumber;
     private String transactionId;
     private String customerNumber;
     private String policyNumber;
+    private String claimNumber;
     private BigDecimal amount;
     private String currency;
     private String failureReason;
@@ -26,4 +29,6 @@ public class PaymentFailedEvent {
     private Integer retryCount;
     private LocalDateTime retryScheduledAt;
     private LocalDateTime failedAt;
+
+
 }

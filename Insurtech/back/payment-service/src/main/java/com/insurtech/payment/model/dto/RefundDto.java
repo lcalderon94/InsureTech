@@ -66,4 +66,8 @@ public class RefundDto {
     // Timestamps
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private String originalPaymentId;  // Para getOriginalPaymentId()
+    private String claimNumber;        // Para getClaimNumber()
+    private LocalDateTime completionDate;  // Para getCompletionDate()
 }

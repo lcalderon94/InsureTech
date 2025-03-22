@@ -1,3 +1,4 @@
+// Cree la clase PaymentNotFoundException.java si no existe
 package com.insurtech.payment.exception;
 
 import org.springframework.http.HttpStatus;

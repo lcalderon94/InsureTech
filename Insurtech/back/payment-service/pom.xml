@@ -46,6 +46,22 @@
 			<version>5.2.3</version>
 		</dependency>
 
+		 <dependency>
+		     <groupId>io.jsonwebtoken</groupId>
+		     <artifactId>jjwt-api</artifactId>
+		     <version>0.11.5</version>
+		 </dependency>
+		 <dependency>
+		     <groupId>io.jsonwebtoken</groupId>
+		     <artifactId>jjwt-impl</artifactId>
+		     <version>0.11.5</version>
+		 </dependency>
+		 <dependency>
+		     <groupId>io.jsonwebtoken</groupId>
+		     <artifactId>jjwt-jackson</artifactId>
+		     <version>0.11.5</version>
+		 </dependency>
+
 		<!-- Spring Integration JDBC (para DistributedLock) -->
 		<dependency>
 			<groupId>org.springframework.integration</groupId>
@@ -133,6 +149,18 @@
 			<groupId>com.paypal.sdk</groupId>
 			<artifactId>rest-api-sdk</artifactId>
 			<version>1.14.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
+		</dependency>
+
+		<!-- Para los clientes Kafka de Apache -->
+		<dependency>
+			<groupId>org.apache.kafka</groupId>
+			<artifactId>kafka-clients</artifactId>
+			<version>3.4.0</version> <!-- Ajusta la versión para que sea compatible -->
 		</dependency>
 
 		<!-- Utilities -->

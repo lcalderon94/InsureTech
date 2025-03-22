@@ -1,6 +1,7 @@
 package com.insurtech.payment.service;
 
 import com.insurtech.payment.model.dto.PaymentDto;
+import com.insurtech.payment.model.dto.PaymentMethodDto;
 import com.insurtech.payment.model.entity.Payment;
 
 import java.io.InputStream;
@@ -18,6 +19,8 @@ public interface PaymentBatchService {
      * Procesa por lotes una lista de pagos
      */
     CompletableFuture<List<PaymentDto>> processBatch(List<PaymentDto> payments);
+
+    public CompletableFuture<List<PaymentDto>> processPendingPaymentsBatch(PaymentMethodDto paymentMethodDto);
 
     /**
      * Procesa por lotes pagos desde un archivo CSV
