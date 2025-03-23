@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -79,6 +80,127 @@ public class InvoiceServiceImpl implements InvoiceService {
         sendInvoiceNotification(savedInvoice, "CREATED");
 
         return mapper.toDto(savedInvoice);
+    }
+
+    public Map<String, Object> generateInvoiceAgingAnalysis() {
+        Map<String, Object> agingAnalysis = new HashMap<>();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // Categorizar facturas por antigüedad
+        List<Invoice> allInvoices = invoiceRepository.findAll();
+
+        Map<String, List<Invoice>> invoicesByAge = new HashMap<>();
+        invoicesByAge.put("current", new ArrayList<>());
+        invoicesByAge.put("1-30", new ArrayList<>());
+        invoicesByAge.put("31-60", new ArrayList<>());
+        invoicesByAge.put("61-90", new ArrayList<>());
+        invoicesByAge.put("90+", new ArrayList<>());
+
+        for (Invoice invoice : allInvoices) {
+            if (invoice.getStatus() != Invoice.InvoiceStatus.PENDING &&
+                    invoice.getStatus() != Invoice.InvoiceStatus.PARTIALLY_PAID &&
+                    invoice.getStatus() != Invoice.InvoiceStatus.OVERDUE) {
+                continue;
+            }
+
+            LocalDateTime dueDate = invoice.getDueDate();
+            if (dueDate.isAfter(now)) {
+                invoicesByAge.get("current").add(invoice);
+            } else {
+                long daysOverdue = ChronoUnit.DAYS.between(dueDate, now);
+                if (daysOverdue <= 30) {
+                    invoicesByAge.get("1-30").add(invoice);
+                } else if (daysOverdue <= 60) {
+                    invoicesByAge.get("31-60").add(invoice);
+                } else if (daysOverdue <= 90) {
+                    invoicesByAge.get("61-90").add(invoice);
+                } else {
+                    invoicesByAge.get("90+").add(invoice);
+                }
+            }
+        }
+
+        // Calcular importes para cada categoría
+        Map<String, BigDecimal> amountsByAge = new HashMap<>();
+        for (Map.Entry<String, List<Invoice>> entry : invoicesByAge.entrySet()) {
+            BigDecimal totalAmount = entry.getValue().stream()
+                    .map(invoice -> {
+                        BigDecimal paidAmount = invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO;
+                        return invoice.getTotalAmount().subtract(paidAmount);
+                    })
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            amountsByAge.put(entry.getKey(), totalAmount);
+        }
+
+        agingAnalysis.put("invoiceCountByAge", invoicesByAge.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().size())));
+        agingAnalysis.put("amountsByAge", amountsByAge);
+
+        return agingAnalysis;
+    }
+
+    @Async
+    public CompletableFuture<Integer> sendInvoiceReminders(int daysBeforeDue, boolean includeOverdue) {
+        int sentCount = 0;
+
+        // Facturas próximas a vencer
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime cutoffDate = now.plusDays(daysBeforeDue);
+
+        List<Invoice> invoices = invoiceRepository.findInvoicesDueSoon(now, cutoffDate);
+
+        // Incluir facturas vencidas si se solicita
+        if (includeOverdue) {
+            List<Invoice> overdueInvoices = invoiceRepository.findOverdueInvoices(now);
+            invoices.addAll(overdueInvoices);
+        }
+
+        for (Invoice invoice : invoices) {
+            try {
+                // Enviar notificación al cliente
+                Map<String, Object> notification = new HashMap<>();
+                notification.put("type", "REMINDER");
+                notification.put("customerNumber", invoice.getCustomerNumber());
+
+                String title;
+                String message;
+
+                if (invoice.getDueDate().isBefore(now)) {
+                    // Factura vencida
+                    long daysOverdue = ChronoUnit.DAYS.between(invoice.getDueDate(), now);
+                    title = "Recordatorio: Factura vencida";
+                    message = String.format("Su factura #%s por %s %s venció hace %d días. Por favor, regularice su pago.",
+                            invoice.getInvoiceNumber(),
+                            invoice.getTotalAmount().subtract(invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO),
+                            invoice.getCurrency(),
+                            daysOverdue);
+                } else {
+                    // Factura próxima a vencer
+                    long daysRemaining = ChronoUnit.DAYS.between(now, invoice.getDueDate());
+                    title = "Recordatorio: Factura próxima a vencer";
+                    message = String.format("Su factura #%s por %s %s vence en %d días. Por favor, programe su pago.",
+                            invoice.getInvoiceNumber(),
+                            invoice.getTotalAmount().subtract(invoice.getPaidAmount() != null ? invoice.getPaidAmount() : BigDecimal.ZERO),
+                            invoice.getCurrency(),
+                            daysRemaining);
+                }
+
+                notification.put("title", title);
+                notification.put("message", message);
+                notification.put("invoiceNumber", invoice.getInvoiceNumber());
+
+                // Enviar notificación
+                customerServiceClient.sendNotification("REMINDER-" + UUID.randomUUID().toString(), notification);
+                sentCount++;
+
+            } catch (Exception e) {
+                log.error("Error al enviar recordatorio para factura {}: {}", invoice.getInvoiceNumber(), e.getMessage());
+            }
+        }
+
+        return CompletableFuture.completedFuture(sentCount);
     }
 
     @Override

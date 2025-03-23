@@ -23,6 +23,10 @@ public interface InvoiceService {
      */
     InvoiceDto createInvoice(InvoiceDto invoiceDto);
 
+    Map<String, Object> generateInvoiceAgingAnalysis();
+
+    CompletableFuture<Integer> sendInvoiceReminders(int daysBeforeDue, boolean includeOverdue);
+
     /**
      * Busca una factura por su ID
      */

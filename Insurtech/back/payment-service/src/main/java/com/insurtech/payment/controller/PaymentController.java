@@ -52,6 +52,26 @@ public class PaymentController {
         return new ResponseEntity<>(createdPayment, HttpStatus.CREATED);
     }
 
+    @GetMapping("/analytics/customer/{customerNumber}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+    @Operation(summary = "Análisis de pagos por cliente", description = "Proporciona análisis avanzado de patrones de pago por cliente")
+    public ResponseEntity<Map<String, Object>> getCustomerPaymentAnalytics(@PathVariable String customerNumber) {
+        log.info("Generando análisis de pagos para cliente: {}", customerNumber);
+        Map<String, Object> analytics = paymentService.generateCustomerPaymentAnalytics(customerNumber);
+        return ResponseEntity.ok(analytics);
+    }
+
+    @GetMapping("/forecast/{customerNumber}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+    @Operation(summary = "Pronóstico de pagos", description = "Genera pronóstico de pagos futuros basado en historial")
+    public ResponseEntity<Map<String, Object>> getForecastedPayments(
+            @PathVariable String customerNumber,
+            @RequestParam(defaultValue = "6") int months) {
+        log.info("Generando pronóstico de pagos para cliente: {} en los próximos {} meses", customerNumber, months);
+        Map<String, Object> forecast = paymentService.forecastPayments(customerNumber, months);
+        return ResponseEntity.ok(forecast);
+    }
+
     @PostMapping("/process")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
     @Operation(summary = "Procesar un pago", description = "Crea y procesa un nuevo pago")

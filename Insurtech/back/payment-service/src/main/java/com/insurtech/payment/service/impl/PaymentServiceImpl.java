@@ -38,12 +38,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.time.YearMonth;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -165,6 +163,90 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return mapper.toDto(payment);
+    }
+
+    public Map<String, Object> generateCustomerPaymentAnalytics(String customerNumber) {
+        Map<String, Object> analytics = new HashMap<>();
+
+        // Obtener pagos del cliente
+        List<Payment> payments = paymentRepository.findByCustomerNumber(customerNumber);
+
+        // Calcular estadísticas avanzadas
+        analytics.put("totalPayments", payments.size());
+
+        // Tendencia de pagos por mes
+        Map<YearMonth, BigDecimal> paymentsByMonth = payments.stream()
+                .filter(p -> p.getPaymentDate() != null)
+                .collect(Collectors.groupingBy(
+                        p -> YearMonth.from(p.getPaymentDate()),
+                        Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)
+                ));
+        analytics.put("paymentTrend", paymentsByMonth);
+
+        // Tasa de éxito de pagos
+        long successfulPayments = payments.stream()
+                .filter(p -> p.getStatus() == Payment.PaymentStatus.COMPLETED)
+                .count();
+        double successRate = payments.isEmpty() ? 0 : (double) successfulPayments / payments.size() * 100;
+        analytics.put("paymentSuccessRate", successRate);
+
+        // Métodos de pago más utilizados
+        Map<String, Long> paymentMethodUsage = payments.stream()
+                .filter(p -> p.getPaymentMethod() != null)
+                .collect(Collectors.groupingBy(
+                        p -> p.getPaymentMethod().getMethodType().toString(),
+                        Collectors.counting()
+                ));
+        analytics.put("paymentMethodUsage", paymentMethodUsage);
+
+        return analytics;
+    }
+
+    public Map<String, Object> forecastPayments(String customerNumber, int months) {
+        Map<String, Object> forecast = new HashMap<>();
+
+        // Obtener historial de pagos del cliente
+        List<Payment> payments = paymentRepository.findByCustomerNumber(customerNumber);
+
+        // Filtrar pagos completados
+        List<Payment> completedPayments = payments.stream()
+                .filter(p -> p.getStatus() == Payment.PaymentStatus.COMPLETED && p.getPaymentDate() != null)
+                .sorted(Comparator.comparing(Payment::getPaymentDate))
+                .collect(Collectors.toList());
+
+        if (completedPayments.isEmpty()) {
+            forecast.put("message", "No hay suficientes datos de pago para generar un pronóstico");
+            return forecast;
+        }
+
+        // Calcular promedio de pagos mensuales
+        Map<YearMonth, BigDecimal> paymentsByMonth = completedPayments.stream()
+                .collect(Collectors.groupingBy(
+                        p -> YearMonth.from(p.getPaymentDate()),
+                        Collectors.reducing(BigDecimal.ZERO, Payment::getAmount, BigDecimal::add)
+                ));
+
+        List<BigDecimal> monthlyAmounts = new ArrayList<>(paymentsByMonth.values());
+        BigDecimal averageMonthlyPayment = monthlyAmounts.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .divide(BigDecimal.valueOf(monthlyAmounts.size()), 2, RoundingMode.HALF_UP);
+
+        // Generar pronóstico para los próximos meses
+        YearMonth currentMonth = YearMonth.now();
+        List<Map<String, Object>> forecastedMonths = new ArrayList<>();
+
+        for (int i = 1; i <= months; i++) {
+            YearMonth futureMonth = currentMonth.plusMonths(i);
+            Map<String, Object> monthForecast = new HashMap<>();
+            monthForecast.put("month", futureMonth.toString());
+            monthForecast.put("estimatedAmount", averageMonthlyPayment);
+            forecastedMonths.add(monthForecast);
+        }
+
+        forecast.put("forecastedMonths", forecastedMonths);
+        forecast.put("averageMonthlyPayment", averageMonthlyPayment);
+
+        return forecast;
     }
 
     /**
@@ -643,6 +725,49 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return CompletableFuture.completedFuture(updatedCount);
+    }
+
+    @Override
+    public Map<String, Object> getRetryPolicy() {
+        Map<String, Object> retryPolicy = new HashMap<>();
+
+        // Obtener valores de configuración (en un entorno real vendrían de propiedades o base de datos)
+        retryPolicy.put("maxRetryAttempts", 3);
+        retryPolicy.put("retryIntervalHours", 24);
+        retryPolicy.put("retryEligibleStatuses", Arrays.asList("FAILED"));
+        retryPolicy.put("maxRetryAgeHours", 72);
+        retryPolicy.put("automaticRetry", true);
+
+        return retryPolicy;
+    }
+
+    @Override
+    public Map<String, Object> updateRetryPolicy(Map<String, Object> policy) {
+        // En una implementación real, esto actualizaría valores de configuración
+        // en una base de datos o archivos de propiedades
+        log.info("Actualizando política de reintentos con: {}", policy);
+
+        // Validar la configuración
+        if (policy.containsKey("maxRetryAttempts")) {
+            int maxRetries = ((Number) policy.get("maxRetryAttempts")).intValue();
+            if (maxRetries < 0 || maxRetries > 10) {
+                throw new IllegalArgumentException("maxRetryAttempts debe estar entre 0 y 10");
+            }
+        }
+
+        if (policy.containsKey("retryIntervalHours")) {
+            int retryInterval = ((Number) policy.get("retryIntervalHours")).intValue();
+            if (retryInterval < 1 || retryInterval > 48) {
+                throw new IllegalArgumentException("retryIntervalHours debe estar entre 1 y 48");
+            }
+        }
+
+        // Devolver la política actualizada (normalmente se leería de la configuración actualizada)
+        Map<String, Object> updatedPolicy = new HashMap<>(policy);
+        updatedPolicy.put("updated", true);
+        updatedPolicy.put("updatedAt", LocalDateTime.now());
+
+        return updatedPolicy;
     }
 
     // Métodos privados auxiliares

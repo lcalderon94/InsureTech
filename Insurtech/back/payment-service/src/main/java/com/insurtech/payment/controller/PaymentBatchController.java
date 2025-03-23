@@ -50,6 +50,37 @@ public class PaymentBatchController {
                 HttpStatus.ACCEPTED);
     }
 
+    @PostMapping("/reconcile-all")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Reconciliación masiva de todos los pagos", description = "Reconcilia todos los pagos con sistemas externos")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> reconcileAllPayments(
+            @RequestParam(defaultValue = "30") int cutoffDays) {
+        log.info("Iniciando reconciliación masiva de todos los pagos de los últimos {} días", cutoffDays);
+
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(cutoffDays);
+        return batchService.batchReconciliation(cutoffDate)
+                .thenApply(result -> ResponseEntity.ok(result));
+    }
+
+    @PostMapping("/analyze-payment-methods")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Analizar efectividad de métodos de pago", description = "Analiza la tasa de éxito de diferentes métodos de pago")
+    public CompletableFuture<ResponseEntity<Map<String, Object>>> analyzePaymentMethodsEffectiveness() {
+        log.info("Analizando efectividad de métodos de pago");
+        return batchService.analyzePaymentMethodEffectiveness()
+                .thenApply(result -> ResponseEntity.ok(result));
+    }
+
+    @PostMapping("/scheduled-payments")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Configurar pagos programados", description = "Configura procesamiento automático de pagos programados")
+    public ResponseEntity<Map<String, Object>> configureScheduledPayments(
+            @RequestBody Map<String, Object> schedule) {
+        log.info("Configurando pagos programados con horario: {}", schedule);
+        Map<String, Object> result = batchService.configureScheduledPayments(schedule);
+        return ResponseEntity.ok(result);
+    }
+
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Cargar CSV de pagos", description = "Carga y procesa un archivo CSV con datos de pagos")

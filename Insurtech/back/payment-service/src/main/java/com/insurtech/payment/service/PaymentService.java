@@ -34,6 +34,10 @@ public interface PaymentService {
      */
     CompletableFuture<PaymentResponseDto> processPaymentAsync(PaymentRequestDto paymentRequestDto);
 
+    Map<String, Object> forecastPayments(String customerNumber, int months);
+
+    Map<String, Object> generateCustomerPaymentAnalytics(String customerNumber);
+
     /**
      * Busca un pago por su ID
      */
@@ -128,4 +132,14 @@ public interface PaymentService {
      * Actualiza múltiples pagos en batch
      */
     CompletableFuture<Integer> updatePaymentsInBatch(List<String> paymentNumbers, Payment.PaymentStatus status);
+
+    /**
+     * Obtiene la configuración actual de la política de reintentos
+     */
+    Map<String, Object> getRetryPolicy();
+
+    /**
+     * Actualiza la política de reintentos con la configuración proporcionada
+     */
+    Map<String, Object> updateRetryPolicy(Map<String, Object> policy);
 }

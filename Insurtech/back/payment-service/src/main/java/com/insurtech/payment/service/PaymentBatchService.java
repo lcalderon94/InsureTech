@@ -15,12 +15,27 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface PaymentBatchService {
 
+    Map<String, Object> configureScheduledPayments(Map<String, Object> schedule);
+
+    CompletableFuture<Map<String, Object>> analyzePaymentMethodEffectiveness();
+
     /**
      * Procesa por lotes una lista de pagos
      */
     CompletableFuture<List<PaymentDto>> processBatch(List<PaymentDto> payments);
 
     public CompletableFuture<List<PaymentDto>> processPendingPaymentsBatch(PaymentMethodDto paymentMethodDto);
+
+    /**
+     * Obtiene la lista de trabajos por lotes activos
+     */
+    List<String> getActiveBatchJobs();
+
+    /**
+     * Reprocesa pagos fallidos en un rango de fechas
+     */
+    CompletableFuture<Map<String, Object>> reprocessFailedPayments(
+            LocalDateTime startDate, LocalDateTime endDate);
 
     /**
      * Procesa por lotes pagos desde un archivo CSV

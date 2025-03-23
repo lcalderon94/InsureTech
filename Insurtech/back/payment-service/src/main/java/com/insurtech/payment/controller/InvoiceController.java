@@ -50,6 +50,27 @@ public class InvoiceController {
         return new ResponseEntity<>(createdInvoice, HttpStatus.CREATED);
     }
 
+    @GetMapping("/analytics/aging")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT')")
+    @Operation(summary = "Análisis de antigüedad de facturas", description = "Proporciona análisis de facturas por antigüedad")
+    public ResponseEntity<Map<String, Object>> getInvoiceAgingAnalysis() {
+        log.info("Generando análisis de antigüedad de facturas");
+        Map<String, Object> agingAnalysis = invoiceService.generateInvoiceAgingAnalysis();
+        return ResponseEntity.ok(agingAnalysis);
+    }
+
+    @PostMapping("/batch/remind")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Enviar recordatorios de facturas", description = "Envía recordatorios para facturas pendientes")
+    public CompletableFuture<ResponseEntity<Integer>> sendInvoiceReminders(
+            @RequestParam(defaultValue = "7") int daysBeforeDue,
+            @RequestParam(defaultValue = "true") boolean includeOverdue) {
+        log.info("Enviando recordatorios de facturas a {} días del vencimiento, incluir vencidas: {}",
+                daysBeforeDue, includeOverdue);
+        return invoiceService.sendInvoiceReminders(daysBeforeDue, includeOverdue)
+                .thenApply(count -> ResponseEntity.ok(count));
+    }
+
     @GetMapping("/number/{invoiceNumber}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('AGENT') or hasRole('USER')")
     @Operation(summary = "Obtener factura por número", description = "Obtiene una factura por su número único")

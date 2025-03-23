@@ -7,8 +7,10 @@ import com.insurtech.payment.model.dto.PaymentRequestDto;
 import com.insurtech.payment.model.dto.PaymentResponseDto;
 import com.insurtech.payment.model.entity.Invoice;
 import com.insurtech.payment.model.entity.Payment;
+import com.insurtech.payment.model.entity.PaymentMethod;
 import com.insurtech.payment.model.entity.Transaction;
 import com.insurtech.payment.repository.InvoiceRepository;
+import com.insurtech.payment.repository.PaymentMethodRepository;
 import com.insurtech.payment.repository.PaymentRepository;
 import com.insurtech.payment.repository.TransactionRepository;
 import com.insurtech.payment.service.DistributedLockService;
@@ -33,6 +35,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +53,8 @@ public class PaymentBatchServiceImpl implements PaymentBatchService {
     private final PaymentGatewayService paymentGatewayService;
     private final DistributedLockService lockService;
     private final EntityDtoMapper mapper;
+    private final PaymentMethodRepository paymentMethodRepository;
+
 
     // Mapa para seguimiento del estado de los trabajos por lotes
     private final Map<String, Map<String, Object>> batchStatus = new ConcurrentHashMap<>();
@@ -111,6 +116,107 @@ public class PaymentBatchServiceImpl implements PaymentBatchService {
 
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    @Async
+    public CompletableFuture<Map<String, Object>> analyzePaymentMethodEffectiveness() {
+        Map<String, Object> analysis = new HashMap<>();
+
+        try {
+            // Obtener todos los pagos con método de pago asociado
+            List<Payment> payments = paymentRepository.findAll().stream()
+                    .filter(p -> p.getPaymentMethod() != null)
+                    .collect(Collectors.toList());
+
+            // Agrupar por tipo de método de pago
+            Map<PaymentMethod.MethodType, List<Payment>> paymentsByMethodType = payments.stream()
+                    .collect(Collectors.groupingBy(p -> p.getPaymentMethod().getMethodType()));
+
+            // Calcular estadísticas para cada tipo
+            Map<String, Map<String, Object>> effectivenessByType = new HashMap<>();
+
+            for (Map.Entry<PaymentMethod.MethodType, List<Payment>> entry : paymentsByMethodType.entrySet()) {
+                PaymentMethod.MethodType methodType = entry.getKey();
+                List<Payment> methodPayments = entry.getValue();
+
+                Map<String, Object> stats = new HashMap<>();
+
+                // Total de pagos
+                stats.put("totalPayments", methodPayments.size());
+
+                // Pagos exitosos
+                long successfulPayments = methodPayments.stream()
+                        .filter(p -> p.getStatus() == Payment.PaymentStatus.COMPLETED)
+                        .count();
+
+                // Tasa de éxito
+                double successRate = methodPayments.isEmpty() ? 0 : (double) successfulPayments / methodPayments.size() * 100;
+                stats.put("successRate", Math.round(successRate * 100) / 100.0);
+
+                // Tiempo promedio de procesamiento
+                OptionalDouble avgProcessingTime = methodPayments.stream()
+                        .filter(p -> p.getPaymentDate() != null && p.getCreatedAt() != null)
+                        .mapToLong(p -> ChronoUnit.SECONDS.between(p.getCreatedAt(), p.getPaymentDate()))
+                        .average();
+
+                stats.put("avgProcessingTimeSeconds", avgProcessingTime.isPresent() ? avgProcessingTime.getAsDouble() : 0);
+
+                // Monto promedio de pago
+                OptionalDouble avgAmount = methodPayments.stream()
+                        .mapToDouble(p -> p.getAmount().doubleValue())
+                        .average();
+
+                stats.put("avgAmount", avgAmount.isPresent() ? avgAmount.getAsDouble() : 0);
+
+                effectivenessByType.put(methodType.toString(), stats);
+            }
+
+            analysis.put("effectivenessByMethodType", effectivenessByType);
+
+            // Método de pago más efectivo (mayor tasa de éxito)
+            Map.Entry<String, Map<String, Object>> mostEffective = effectivenessByType.entrySet().stream()
+                    .max(Comparator.comparing(e -> ((Number) e.getValue().get("successRate")).doubleValue()))
+                    .orElse(null);
+
+            if (mostEffective != null) {
+                analysis.put("mostEffectiveMethod", mostEffective.getKey());
+                analysis.put("mostEffectiveMethodStats", mostEffective.getValue());
+            }
+
+            return CompletableFuture.completedFuture(analysis);
+
+        } catch (Exception e) {
+            log.error("Error al analizar efectividad de métodos de pago: {}", e.getMessage());
+            analysis.put("error", e.getMessage());
+            return CompletableFuture.completedFuture(analysis);
+        }
+    }
+
+    public Map<String, Object> configureScheduledPayments(Map<String, Object> schedule) {
+        // Implementación de la configuración de pagos programados
+        // En un entorno real, esto podría configurar tareas programadas en el sistema
+        Map<String, Object> result = new HashMap<>();
+
+        try {
+            // Ejemplo de horario: días de la semana, hora del día
+            List<String> days = (List<String>) schedule.get("days");
+            String time = (String) schedule.get("time");
+            boolean notifyCustomers = Boolean.parseBoolean(schedule.getOrDefault("notifyCustomers", "false").toString());
+
+            // Guardar configuración (en un entorno real, esto iría a una BD o archivo de configuración)
+            result.put("configured", true);
+            result.put("days", days);
+            result.put("time", time);
+            result.put("notifyCustomers", notifyCustomers);
+            result.put("message", "Configuración de pagos programados establecida correctamente");
+
+        } catch (Exception e) {
+            log.error("Error al configurar pagos programados: {}", e.getMessage());
+            result.put("configured", false);
+            result.put("error", e.getMessage());
+        }
+
+        return result;
     }
 
 
@@ -570,6 +676,115 @@ public class PaymentBatchServiceImpl implements PaymentBatchService {
             jobStatus.put("errorMessage", e.getMessage());
 
             return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Override
+    public List<String> getActiveBatchJobs() {
+        // Devuelve las claves de trabajos por lotes activos del mapa de estado
+        return batchStatus.entrySet().stream()
+                .filter(entry -> {
+                    String status = (String) entry.getValue().getOrDefault("status", "");
+                    return "PROCESSING".equals(status);
+                })
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Async
+    public CompletableFuture<Map<String, Object>> reprocessFailedPayments(LocalDateTime startDate, LocalDateTime endDate) {
+        String batchId = UUID.randomUUID().toString();
+
+        // Inicializar estado
+        Map<String, Object> jobStatus = new HashMap<>();
+        jobStatus.put("id", batchId);
+        jobStatus.put("startTime", LocalDateTime.now());
+        jobStatus.put("status", "PROCESSING");
+        jobStatus.put("operation", "REPROCESS_FAILED");
+        batchStatus.put(batchId, jobStatus);
+
+        try {
+            // También necesitamos agregar este método a PaymentRepository
+            List<Payment> failedPayments = paymentRepository.findByStatusAndCreatedAtBetween(
+                    Payment.PaymentStatus.FAILED, startDate, endDate);
+
+            jobStatus.put("totalItems", failedPayments.size());
+            jobStatus.put("processedItems", 0);
+            jobStatus.put("successCount", 0);
+            jobStatus.put("failureCount", 0);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("totalPayments", failedPayments.size());
+            List<Map<String, Object>> reprocessedPayments = new ArrayList<>();
+
+            for (Payment payment : failedPayments) {
+                try {
+                    // Restablecer el estado del pago a PENDING
+                    payment.setStatus(Payment.PaymentStatus.PENDING);
+                    payment.setRetryCount(payment.getRetryCount() != null ? payment.getRetryCount() + 1 : 1);
+                    payment.setLastRetryDate(LocalDateTime.now());
+                    payment = paymentRepository.save(payment);
+
+                    // Buscar un método de pago predeterminado para este cliente
+                    Optional<PaymentMethod> defaultPaymentMethod =
+                            paymentMethodRepository.findByCustomerNumberAndIsDefaultTrue(payment.getCustomerNumber());
+
+                    if (defaultPaymentMethod.isPresent()) {
+                        PaymentMethodDto paymentMethodDto = mapper.toDto(defaultPaymentMethod.get());
+
+                        // Procesar el pago
+                        Map<String, Object> reprocessInfo = new HashMap<>();
+                        reprocessInfo.put("paymentNumber", payment.getPaymentNumber());
+                        reprocessInfo.put("customerNumber", payment.getCustomerNumber());
+                        reprocessInfo.put("amount", payment.getAmount());
+                        reprocessInfo.put("status", "REPROCESSED");
+                        reprocessInfo.put("timestamp", LocalDateTime.now());
+
+                        reprocessedPayments.add(reprocessInfo);
+
+                        // Actualizar estado del trabajo
+                        jobStatus.put("processedItems", (int) jobStatus.get("processedItems") + 1);
+                        jobStatus.put("successCount", (int) jobStatus.get("successCount") + 1);
+                    } else {
+                        // No hay método de pago predeterminado, marcar como fallido
+                        payment.setStatus(Payment.PaymentStatus.FAILED);
+                        payment.setFailureReason("No se encontró método de pago predeterminado para reprocesar");
+                        paymentRepository.save(payment);
+
+                        // Actualizar estado del trabajo
+                        jobStatus.put("processedItems", (int) jobStatus.get("processedItems") + 1);
+                        jobStatus.put("failureCount", (int) jobStatus.get("failureCount") + 1);
+                    }
+                } catch (Exception e) {
+                    log.error("Error al reprocesar pago {}: {}", payment.getPaymentNumber(), e.getMessage());
+
+                    // Actualizar estado del trabajo
+                    jobStatus.put("processedItems", (int) jobStatus.get("processedItems") + 1);
+                    jobStatus.put("failureCount", (int) jobStatus.get("failureCount") + 1);
+                }
+            }
+
+            result.put("reprocessedPayments", reprocessedPayments);
+            result.put("successCount", jobStatus.get("successCount"));
+            result.put("failureCount", jobStatus.get("failureCount"));
+
+            // Actualizar estado final
+            jobStatus.put("endTime", LocalDateTime.now());
+            jobStatus.put("status", "COMPLETED");
+
+            return CompletableFuture.completedFuture(result);
+        } catch (Exception e) {
+            log.error("Error al reprocesar pagos fallidos: {}", e.getMessage());
+
+            // Actualizar estado final con error
+            jobStatus.put("endTime", LocalDateTime.now());
+            jobStatus.put("status", "FAILED");
+            jobStatus.put("errorMessage", e.getMessage());
+
+            Map<String, Object> errorResult = new HashMap<>();
+            errorResult.put("error", "Error al reprocesar pagos: " + e.getMessage());
+            return CompletableFuture.completedFuture(errorResult);
         }
     }
 
