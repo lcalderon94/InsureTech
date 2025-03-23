@@ -46,14 +46,24 @@ public class InvoiceServiceImpl implements InvoiceService {
     public InvoiceDto createInvoice(InvoiceDto invoiceDto) {
         log.info("Creando nueva factura para cliente número: {}", invoiceDto.getCustomerNumber());
 
-        // Validar existencia del cliente
-        if (!customerServiceClient.customerExists(invoiceDto.getCustomerNumber()).getBody()) {
+        // Obtener el ID del cliente
+        Long customerId;
+        try {
+            Map<String, Object> customer = customerServiceClient.getCustomerByNumber(invoiceDto.getCustomerNumber());
+            customerId = ((Number) customer.get("id")).longValue();
+        } catch (Exception e) {
+            log.error("Error al resolver cliente por número: {}", invoiceDto.getCustomerNumber(), e);
             throw new ResourceNotFoundException("Cliente no encontrado con número: " + invoiceDto.getCustomerNumber());
         }
 
-        // Validar existencia de la póliza si se proporciona
+        // Obtener el ID de la póliza si se proporciona
+        Long policyId = null;
         if (invoiceDto.getPolicyNumber() != null && !invoiceDto.getPolicyNumber().isEmpty()) {
-            if (!policyServiceClient.policyExists(invoiceDto.getPolicyNumber()).getBody()) {
+            try {
+                Map<String, Object> policy = policyServiceClient.getPolicyByNumber(invoiceDto.getPolicyNumber());
+                policyId = ((Number) policy.get("id")).longValue();
+            } catch (Exception e) {
+                log.error("Error al resolver póliza por número: {}", invoiceDto.getPolicyNumber(), e);
                 throw new ResourceNotFoundException("Póliza no encontrada con número: " + invoiceDto.getPolicyNumber());
             }
         }
@@ -66,7 +76,6 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         // Calcular importes si no se proporcionan
         if (invoice.getTaxAmount() == null) {
-            // Por ejemplo, calcular 21% de IVA
             invoice.setTaxAmount(invoice.getTotalAmount().multiply(new BigDecimal("0.21")));
         }
 

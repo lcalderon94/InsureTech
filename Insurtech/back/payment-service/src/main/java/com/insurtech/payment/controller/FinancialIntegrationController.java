@@ -54,16 +54,14 @@ public class FinancialIntegrationController {
         Map<String, Object> profile = new HashMap<>();
 
         // Información del cliente
-        ResponseEntity<Map<String, Object>> customerResponse = customerServiceClient.getCustomerByNumber(customerNumber);
-        if (customerResponse.getStatusCode().is2xxSuccessful() && customerResponse.getBody() != null) {
-            profile.put("customerInfo", customerResponse.getBody());
+        Map<String, Object> customerInfo = customerServiceClient.getCustomerByNumber(customerNumber);
+        if (!customerInfo.containsKey("error")) {
+            profile.put("customerInfo", customerInfo);
         }
 
         // Pólizas del cliente
-        ResponseEntity<Object> policiesResponse = policyServiceClient.getPoliciesByCustomerNumber(customerNumber);
-        if (policiesResponse.getStatusCode().is2xxSuccessful() && policiesResponse.getBody() != null) {
-            profile.put("policies", policiesResponse.getBody());
-        }
+        List<Map<String, Object>> policies = policyServiceClient.getPoliciesByCustomerNumber(customerNumber);
+        profile.put("policies", policies);
 
         // Estadísticas de pagos
         Map<String, Object> paymentStats = paymentService.getPaymentStatistics(customerNumber);
@@ -98,9 +96,9 @@ public class FinancialIntegrationController {
         Map<String, Object> history = new HashMap<>();
 
         // Información de la póliza
-        ResponseEntity<Map<String, Object>> policyResponse = policyServiceClient.getPolicyByNumber(policyNumber);
-        if (policyResponse.getStatusCode().is2xxSuccessful() && policyResponse.getBody() != null) {
-            history.put("policyInfo", policyResponse.getBody());
+        Map<String, Object> policyInfo = policyServiceClient.getPolicyByNumber(policyNumber);
+        if (!policyInfo.containsKey("error")) {
+            history.put("policyInfo", policyInfo);
         }
 
         // Pagos de la póliza
@@ -116,10 +114,8 @@ public class FinancialIntegrationController {
         history.put("refunds", refunds);
 
         // Reclamaciones de la póliza con pagos asociados
-        ResponseEntity<Object> claimsResponse = claimServiceClient.getClaimsByPolicyNumber(policyNumber);
-        if (claimsResponse.getStatusCode().is2xxSuccessful() && claimsResponse.getBody() != null) {
-            history.put("claims", claimsResponse.getBody());
-        }
+        List<Map<String, Object>> claims = claimServiceClient.getClaimsByPolicyNumber(policyNumber);
+        history.put("claims", claims);
 
         // Calcular totales
         BigDecimal totalPaid = paymentService.calculateTotalPaidForPolicy(policyNumber);

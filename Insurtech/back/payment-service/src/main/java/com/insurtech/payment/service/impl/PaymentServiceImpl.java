@@ -67,16 +67,24 @@ public class PaymentServiceImpl implements PaymentService {
     public PaymentDto createPayment(PaymentDto paymentDto) {
         log.info("Creando nuevo pago para cliente número: {}", paymentDto.getCustomerNumber());
 
-        // Validar existencia del cliente
-        ResponseEntity<Boolean> customerExistsResponse = customerServiceClient.customerExists(paymentDto.getCustomerNumber());
-        if (customerExistsResponse.getBody() == null || !customerExistsResponse.getBody()) {
+        // Resolución de cliente
+        try {
+            Map<String, Object> customer = customerServiceClient.getCustomerByNumber(paymentDto.getCustomerNumber());
+            Long customerId = ((Number) customer.get("id")).longValue();
+            log.debug("Cliente resuelto con ID: {}", customerId);
+        } catch (Exception e) {
+            log.error("Error al resolver cliente por número: {}", paymentDto.getCustomerNumber(), e);
             throw new ResourceNotFoundException("Cliente no encontrado con número: " + paymentDto.getCustomerNumber());
         }
 
-        // Validar existencia de la póliza si se proporciona
+        // Validación de póliza si se proporciona
         if (paymentDto.getPolicyNumber() != null && !paymentDto.getPolicyNumber().isEmpty()) {
-            ResponseEntity<Boolean> policyExistsResponse = policyServiceClient.policyExists(paymentDto.getPolicyNumber());
-            if (!policyExistsResponse.getBody()) {
+            try {
+                Map<String, Object> policy = policyServiceClient.getPolicyByNumber(paymentDto.getPolicyNumber());
+                Long policyId = ((Number) policy.get("id")).longValue();
+                log.debug("Póliza resuelta con ID: {}", policyId);
+            } catch (Exception e) {
+                log.error("Error al resolver póliza por número: {}", paymentDto.getPolicyNumber(), e);
                 throw new ResourceNotFoundException("Póliza no encontrada con número: " + paymentDto.getPolicyNumber());
             }
         }
@@ -122,7 +130,7 @@ public class PaymentServiceImpl implements PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         // Publicar evento de creación de pago
-        publishPaymentCreatedEvent(savedPayment);
+        //publishPaymentCreatedEvent(savedPayment);
 
         return mapper.toDto(savedPayment);
     }

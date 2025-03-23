@@ -60,14 +60,23 @@ public class RefundServiceImpl implements RefundService {
     public RefundDto requestRefund(RefundDto refundDto) {
         log.info("Solicitando reembolso para cliente número: {}", refundDto.getCustomerNumber());
 
-        // Validar existencia del cliente
-        if (!customerServiceClient.customerExists(refundDto.getCustomerNumber()).getBody()) {
+        try {
+            Map<String, Object> customer = customerServiceClient.getCustomerByNumber(refundDto.getCustomerNumber());
+            Long customerId = ((Number) customer.get("id")).longValue();
+            log.debug("Cliente resuelto con ID: {}", customerId);
+        } catch (Exception e) {
+            log.error("Error al resolver cliente por número: {}", refundDto.getCustomerNumber(), e);
             throw new ResourceNotFoundException("Cliente no encontrado con número: " + refundDto.getCustomerNumber());
         }
 
-        // Validar existencia de la póliza si se proporciona
+        // Validación de póliza si se proporciona
         if (refundDto.getPolicyNumber() != null && !refundDto.getPolicyNumber().isEmpty()) {
-            if (!policyServiceClient.policyExists(refundDto.getPolicyNumber()).getBody()) {
+            try {
+                Map<String, Object> policy = policyServiceClient.getPolicyByNumber(refundDto.getPolicyNumber());
+                Long policyId = ((Number) policy.get("id")).longValue();
+                log.debug("Póliza resuelta con ID: {}", policyId);
+            } catch (Exception e) {
+                log.error("Error al resolver póliza por número: {}", refundDto.getPolicyNumber(), e);
                 throw new ResourceNotFoundException("Póliza no encontrada con número: " + refundDto.getPolicyNumber());
             }
         }

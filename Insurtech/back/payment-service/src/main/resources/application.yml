@@ -1,6 +1,8 @@
 spring:
   application:
     name: payment-service
+  autoconfigure:
+    exclude: org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/xepdb1
     username: PAYMENT_SCHEMA
@@ -20,16 +22,18 @@ spring:
       resourceserver:
         jwt:
           secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
-  # Configuración Kafka (para desarrollo local)
+  # Configuración Kafka (para desarrollo local) - se mantiene por si se necesita activar después
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: payment-service
       auto-offset-reset: earliest
+    listener:
+      auto-startup: false  # Evita intentos de conexión automática
   config:
     import: "configserver:http://localhost:8888"
 
-# Propiedad para deshabilitar Kafka (usar con @ConditionalOnProperty en KafkaConfig)
+# Propiedad para deshabilitar Kafka
 kafka:
   enabled: false  # Cambiar a true cuando quieras activar Kafka
 

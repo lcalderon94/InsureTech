@@ -42,7 +42,12 @@ public class PaymentMethodServiceImpl implements PaymentMethodService {
         log.info("Creando nuevo método de pago para cliente número: {}", paymentMethodDto.getCustomerNumber());
 
         // Validar existencia del cliente
-        if (!customerServiceClient.customerExists(paymentMethodDto.getCustomerNumber()).getBody()) {
+        try {
+            Map<String, Object> customer = customerServiceClient.getCustomerByNumber(paymentMethodDto.getCustomerNumber());
+            Long customerId = ((Number) customer.get("id")).longValue();
+            log.debug("Cliente resuelto con ID: {}", customerId);
+        } catch (Exception e) {
+            log.error("Error al resolver cliente por número: {}", paymentMethodDto.getCustomerNumber(), e);
             throw new ResourceNotFoundException("Cliente no encontrado con número: " + paymentMethodDto.getCustomerNumber());
         }
 
