@@ -73,4 +73,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             @Param("maxRetries") int maxRetries,
             @Param("cutoffTime") LocalDateTime cutoffTime,
             Pageable pageable);
+
+    /**
+     * Encuentra pagos por estado y rango de fecha de creación
+     */
+    List<Payment> findByStatusAndCreatedAtBetween(
+            Payment.PaymentStatus status, LocalDateTime start, LocalDateTime end);
 }

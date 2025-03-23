@@ -61,6 +61,16 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     List<Transaction> findByTransactionDateBetween(LocalDateTime startDate, LocalDateTime endDate);
 
     /**
+     * Encuentra las 10 transacciones más recientes con el estado especificado
+     */
+    List<Transaction> findTop10ByStatusOrderByTransactionDateDesc(Transaction.TransactionStatus status);
+
+    /**
+     * Cuenta el número de transacciones por estado
+     */
+    Long countByStatus(Transaction.TransactionStatus status);
+
+    /**
      * Busca transacciones fallidas para reintento
      */
     @Query("SELECT t FROM Transaction t WHERE t.status = 'FAILED' AND t.retryCount < :maxRetries AND t.retryDate <= :currentDateTime")
