@@ -29,20 +29,16 @@ spring:
   # Configuración de Spring Batch para Oracle
   batch:
     job:
-      enabled: false   # No ejecutar jobs automáticamente
+      enabled: true   # MODIFICADO: Ahora ejecuta jobs automáticamente
     jdbc:
       initialize-schema: never   # No inicializar schema automáticamente
     # Mantener configuración original
     claim:
       chunk-size: 100
       grid-size: 4
-  # IMPORTANTE: Desactivar completamente la autoconfiguración de Kafka
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.kafka.KafkaAutoConfiguration
-  # Deshabilitar la configuración de Kafka
+  # Configuración de Kafka habilitada
   kafka:
-    enabled: false
+    enabled: true  # MODIFICADO
     bootstrap-servers: localhost:9092
     consumer:
       group-id: claim-service-group
@@ -51,10 +47,11 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  # MODIFICADO: Se eliminó la exclusión de Kafka de autoconfigure
 
-# Propiedad global para deshabilitar Kafka (usado con @ConditionalOnProperty)
+# Propiedad global para habilitar Kafka (usado con @ConditionalOnProperty)
 kafka:
-  enabled: false
+  enabled: true  # MODIFICADO: Ahora Kafka está habilitado
 
 server:
   port: 8084
@@ -75,9 +72,9 @@ services:
     url: http://localhost:8085
 
 app:
-  # Desactivar eventos explícitamente
+  # Activar eventos
   events:
-    enabled: false
+    enabled: true  # MODIFICADO: Ahora los eventos están habilitados
   document:
     storage:
       path: /tmp/claim-documents
@@ -112,5 +109,5 @@ logging:
     org.springframework.security: INFO
     org.springframework.web: INFO
     org.springframework.batch: INFO
-    org.springframework.kafka: ERROR  # Reducir logs de Kafka
+    org.springframework.kafka: INFO  # MODIFICADO: Subido de ERROR a INFO para ver más detalles
     org.hibernate.SQL: DEBUG
