@@ -130,7 +130,7 @@ public class PaymentServiceImpl implements PaymentService {
         Payment savedPayment = paymentRepository.save(payment);
 
         // Publicar evento de creación de pago
-        //publishPaymentCreatedEvent(savedPayment);
+        publishPaymentCreatedEvent(savedPayment);
 
         return mapper.toDto(savedPayment);
     }
