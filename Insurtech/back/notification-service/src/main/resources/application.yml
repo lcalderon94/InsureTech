@@ -1,0 +1,103 @@
+spring:
+  application:
+    name: notification-service
+  datasource:
+    url: jdbc:oracle:thin:@localhost:1521:xe
+    username: ${DB_USERNAME:notification_user}
+    password: ${DB_PASSWORD:notification_password}
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.OracleDialect
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.insurtech.notification.event.model"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:test@gmail.com}
+    password: ${MAIL_PASSWORD:password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+# Configuración de Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://localhost:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    prefer-ip-address: true
+
+# Configuración para Servicio de Notificaciones
+notification:
+  email:
+    enabled: ${EMAIL_ENABLED:true}
+    from: ${EMAIL_FROM:noreply@insurtech.com}
+    sender-name: ${EMAIL_SENDER_NAME:InsureTech}
+  sms:
+    enabled: ${SMS_ENABLED:true}
+    account-sid: ${TWILIO_ACCOUNT_SID:account_sid}
+    auth-token: ${TWILIO_AUTH_TOKEN:auth_token}
+    from-number: ${TWILIO_FROM_NUMBER:+1234567890}
+  retry:
+    max-attempts: ${RETRY_MAX_ATTEMPTS:3}
+    initial-interval: ${RETRY_INITIAL_INTERVAL:1000}
+    multiplier: ${RETRY_MULTIPLIER:2.0}
+    max-interval: ${RETRY_MAX_INTERVAL:60000}
+
+# Configuración de Throttling
+throttling:
+  enabled: ${THROTTLING_ENABLED:true}
+  limit-per-second: ${THROTTLING_LIMIT:10}
+
+# Exponer endpoints de Actuator para monitoreo
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  endpoint:
+    health:
+      show-details: always
+
+# Configuración de OpenAPI para documentación de API
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+# Configuración de seguridad JWT
+security:
+  jwt:
+    secret: ${JWT_SECRET:insurtech-notification-service-secret-key}

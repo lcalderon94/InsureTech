@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: notification-service
+  cloud:
+    config:
+      uri: http://${CONFIG_SERVER_HOST:localhost}:8888
+      fail-fast: true
+      username: ${CONFIG_SERVER_USER:config-user}
+      password: ${CONFIG_SERVER_PASSWORD:config-pass}
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
