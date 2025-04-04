@@ -20,11 +20,22 @@ import java.util.Optional;
 @Slf4j
 public class CustomerEventConsumer extends BaseEventConsumer<CustomerEvent> {
 
-    private static final String TOPIC = "customer-events";
-    private static final String CONTAINER_FACTORY = "customerKafkaListenerContainerFactory";
+    // Escuchar en los tópicos exactos que produce CustomerEventProducer
+    @KafkaListener(topics = "customer.created", containerFactory = "customerKafkaListenerContainerFactory")
+    public void consumeCustomerCreated(CustomerEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cliente creado: {}", event.getDocumentNumber());
+        processEvent(event, acknowledgment);
+    }
 
-    @KafkaListener(topics = TOPIC, containerFactory = CONTAINER_FACTORY)
-    public void consume(CustomerEvent event, Acknowledgment acknowledgment) {
+    @KafkaListener(topics = "customer.updated", containerFactory = "customerKafkaListenerContainerFactory")
+    public void consumeCustomerUpdated(CustomerEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cliente actualizado: {}", event.getDocumentNumber());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "customer.status.changed", containerFactory = "customerKafkaListenerContainerFactory")
+    public void consumeCustomerStatusChanged(CustomerEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cambio de estado de cliente: {}", event.getDocumentNumber());
         processEvent(event, acknowledgment);
     }
 

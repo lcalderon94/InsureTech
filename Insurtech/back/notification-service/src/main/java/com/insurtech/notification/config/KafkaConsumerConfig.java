@@ -37,7 +37,7 @@ public class KafkaConsumerConfig {
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class);
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoOffsetReset);
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.insurtech.notification.event.model");
+        props.put(JsonDeserializer.TRUSTED_PACKAGES, "com.insurtech.notification.event.model,java.util");
 
         return new DefaultKafkaConsumerFactory<>(props);
     }
@@ -53,7 +53,7 @@ public class KafkaConsumerConfig {
         return factory;
     }
 
-    // Fábrica específica para eventos de pólizas
+    // Factory para eventos de póliza
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> policyKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
@@ -65,19 +65,7 @@ public class KafkaConsumerConfig {
         return factory;
     }
 
-    // Fábrica específica para eventos de pagos
-    @Bean
-    public ConcurrentKafkaListenerContainerFactory<String, Object> paymentKafkaListenerContainerFactory() {
-        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
-                new ConcurrentKafkaListenerContainerFactory<>();
-        factory.setConsumerFactory(consumerFactory());
-        factory.setConcurrency(2);
-        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
-
-        return factory;
-    }
-
-    // Fábrica específica para eventos de reclamaciones
+    // Factory para eventos de reclamaciones
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> claimKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
@@ -89,9 +77,21 @@ public class KafkaConsumerConfig {
         return factory;
     }
 
-    // Fábrica específica para eventos de clientes
+    // Factory para eventos de clientes
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, Object> customerKafkaListenerContainerFactory() {
+        ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+                new ConcurrentKafkaListenerContainerFactory<>();
+        factory.setConsumerFactory(consumerFactory());
+        factory.setConcurrency(2);
+        factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
+
+        return factory;
+    }
+
+    // Factory para eventos de pagos
+    @Bean
+    public ConcurrentKafkaListenerContainerFactory<String, Object> paymentKafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, Object> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());

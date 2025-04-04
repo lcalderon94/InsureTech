@@ -23,11 +23,22 @@ import java.util.Optional;
 @Slf4j
 public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
 
-    private static final String TOPIC = "policy-events";
-    private static final String CONTAINER_FACTORY = "policyKafkaListenerContainerFactory";
+    // Escuchar en los tópicos exactos que produce PolicyEventProducer
+    @KafkaListener(topics = "policy.created", containerFactory = "policyKafkaListenerContainerFactory")
+    public void consumePolicyCreated(PolicyEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de póliza creada: {}", event.getPolicyNumber());
+        processEvent(event, acknowledgment);
+    }
 
-    @KafkaListener(topics = TOPIC, containerFactory = CONTAINER_FACTORY)
-    public void consume(PolicyEvent event, Acknowledgment acknowledgment) {
+    @KafkaListener(topics = "policy.updated", containerFactory = "policyKafkaListenerContainerFactory")
+    public void consumePolicyUpdated(PolicyEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de póliza actualizada: {}", event.getPolicyNumber());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "policy.status.changed", containerFactory = "policyKafkaListenerContainerFactory")
+    public void consumePolicyStatusChanged(PolicyEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cambio de estado de póliza: {}", event.getPolicyNumber());
         processEvent(event, acknowledgment);
     }
 

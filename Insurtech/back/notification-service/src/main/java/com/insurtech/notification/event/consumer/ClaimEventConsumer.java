@@ -21,11 +21,28 @@ import java.util.Optional;
 @Slf4j
 public class ClaimEventConsumer extends BaseEventConsumer<ClaimEvent> {
 
-    private static final String TOPIC = "claim-events";
-    private static final String CONTAINER_FACTORY = "claimKafkaListenerContainerFactory";
+    // Escuchar en los tópicos exactos que produce ClaimEventProducer
+    @KafkaListener(topics = "claim.created", containerFactory = "claimKafkaListenerContainerFactory")
+    public void consumeClaimCreated(ClaimEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación creada: {}", event.getClaimNumber());
+        processEvent(event, acknowledgment);
+    }
 
-    @KafkaListener(topics = TOPIC, containerFactory = CONTAINER_FACTORY)
-    public void consume(ClaimEvent event, Acknowledgment acknowledgment) {
+    @KafkaListener(topics = "claim.updated", containerFactory = "claimKafkaListenerContainerFactory")
+    public void consumeClaimUpdated(ClaimEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación actualizada: {}", event.getClaimNumber());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "claim.status.changed", containerFactory = "claimKafkaListenerContainerFactory")
+    public void consumeClaimStatusChanged(ClaimEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cambio de estado de reclamación: {}", event.getClaimNumber());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "claim.item.added", containerFactory = "claimKafkaListenerContainerFactory")
+    public void consumeClaimItemAdded(ClaimEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de ítem añadido a reclamación: {}", event.getClaimNumber());
         processEvent(event, acknowledgment);
     }
 

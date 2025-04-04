@@ -21,9 +21,9 @@ public class CustomerEventProducer {
 
     private static final Logger log = LoggerFactory.getLogger(CustomerEventProducer.class);
 
-    private static final String CUSTOMER_CREATED_TOPIC = "customer-created";
-    private static final String CUSTOMER_UPDATED_TOPIC = "customer-updated";
-    private static final String CUSTOMER_STATUS_CHANGED_TOPIC = "customer-status-changed";
+    private static final String CUSTOMER_CREATED_TOPIC = "customer.created";
+    private static final String CUSTOMER_UPDATED_TOPIC = "customer.updated";
+    private static final String CUSTOMER_STATUS_CHANGED_TOPIC = "customer.status.changed";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 

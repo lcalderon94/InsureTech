@@ -22,11 +22,28 @@ import java.util.Optional;
 @Slf4j
 public class PaymentEventConsumer extends BaseEventConsumer<PaymentEvent> {
 
-    private static final String TOPIC = "payment-events";
-    private static final String CONTAINER_FACTORY = "paymentKafkaListenerContainerFactory";
+    // Escuchar en los tópicos de Payment utilizando formato con punto
+    @KafkaListener(topics = "payment.created", containerFactory = "paymentKafkaListenerContainerFactory")
+    public void consumePaymentCreated(PaymentEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de pago creado: {}", event.getPaymentReference());
+        processEvent(event, acknowledgment);
+    }
 
-    @KafkaListener(topics = TOPIC, containerFactory = CONTAINER_FACTORY)
-    public void consume(PaymentEvent event, Acknowledgment acknowledgment) {
+    @KafkaListener(topics = "payment.processed", containerFactory = "paymentKafkaListenerContainerFactory")
+    public void consumePaymentProcessed(PaymentEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de pago procesado: {}", event.getPaymentReference());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "payment.failed", containerFactory = "paymentKafkaListenerContainerFactory")
+    public void consumePaymentFailed(PaymentEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de pago fallido: {}", event.getPaymentReference());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "payment.refund.processed", containerFactory = "paymentKafkaListenerContainerFactory")
+    public void consumeRefundProcessed(PaymentEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reembolso procesado: {}", event.getPaymentReference());
         processEvent(event, acknowledgment);
     }
 

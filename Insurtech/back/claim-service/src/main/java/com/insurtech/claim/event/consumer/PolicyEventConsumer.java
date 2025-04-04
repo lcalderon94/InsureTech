@@ -21,7 +21,7 @@ public class PolicyEventConsumer {
     @Autowired
     private ClaimRepository claimRepository;
 
-    @KafkaListener(topics = "policy-cancelled", groupId = "${spring.kafka.consumer.group-id}",
+    @KafkaListener(topics = "policy.cancelled", groupId = "${spring.kafka.consumer.group-id}",
             containerFactory = "kafkaListenerContainerFactory")
     public void consumePolicyCancelledEvent(Map<String, Object> event) {
         log.info("Recibido evento de póliza cancelada: {}", event);

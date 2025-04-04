@@ -21,10 +21,10 @@ public class ClaimEventProducer {
 
     private static final Logger log = LoggerFactory.getLogger(ClaimEventProducer.class);
 
-    private static final String CLAIM_CREATED_TOPIC = "claim-created";
-    private static final String CLAIM_UPDATED_TOPIC = "claim-updated";
-    private static final String CLAIM_STATUS_CHANGED_TOPIC = "claim-status-changed";
-    private static final String CLAIM_ITEM_ADDED_TOPIC = "claim-item-added";
+    private static final String CLAIM_CREATED_TOPIC = "claim.created";
+    private static final String CLAIM_UPDATED_TOPIC = "claim.updated";
+    private static final String CLAIM_STATUS_CHANGED_TOPIC = "claim.status.changed";
+    private static final String CLAIM_ITEM_ADDED_TOPIC = "claim.item.added";
 
     private final ClaimEventRepository claimEventRepository;
     private KafkaTemplate<String, Object> kafkaTemplate;

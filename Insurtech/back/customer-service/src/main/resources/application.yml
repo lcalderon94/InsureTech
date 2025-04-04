@@ -1,9 +1,9 @@
 spring:
   application:
-    name: customer-service
+    name: notification-service
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/xepdb1
-    username: CUSTOMER_SCHEMA
+    username: NOTIFICATION_SCHEMA
     password: ayabrea
     driver-class-name: oracle.jdbc.OracleDriver
   jpa:
@@ -15,34 +15,62 @@ spring:
         format_sql: true
     show-sql: true
     open-in-view: false
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:your-email@gmail.com}
+    password: ${MAIL_PASSWORD:your-password}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+  kafka:
+    bootstrap-servers: ${KAFKA_SERVERS:localhost:9092}
+    consumer:
+      group-id: notification-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.insurtech.notification.event.model,java.util"
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
   security:
     oauth2:
       resourceserver:
         jwt:
-          secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: customer-service-group
-      auto-offset-reset: earliest
-  config:
-    import: "configserver:http://localhost:8888"
+          issuer-uri: http://localhost:8080/auth/realms/insurtech
+          jwk-set-uri: http://localhost:8080/auth/realms/insurtech/protocol/openid-connect/certs
+          # Para entornos de desarrollo, se puede usar un secreto compartido
+          secret: ${JWT_SECRET:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
 
-
-app:
-  events:
-    enabled: false
+# Configuración de Twilio para envío de SMS
+notification:
+  email:
+    enabled: true
+    from: ${EMAIL_FROM:noreply@insurtech.com}
+    sender-name: ${EMAIL_SENDER_NAME:InsureTech Notifications}
+  sms:
+    enabled: true
+    account-sid: AC42222c05cfd6edf65c76207e3d0c663e
+    auth-token: 31f1d45e33a2623aef9f9498ce2d7a6
+    from-number: +17659816294
+  retry:
+    max-attempts: 3
+    initial-interval: 1000
+    multiplier: 2.0
+    max-interval: 60000
 
 server:
-  port: 8081
+  port: 9500
   servlet:
     context-path: /
 
-async:
-  core-pool-size: 5
-  max-pool-size: 10
-  queue-capacity: 25
-
+# Configuración de actuators para monitoreo
 management:
   endpoints:
     web:
@@ -52,15 +80,20 @@ management:
     health:
       show-details: always
 
+# Configuración de Eureka
 eureka:
   client:
     serviceUrl:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_SERVER:http://localhost:8761/eureka/}
   instance:
     preferIpAddress: true
+    instanceId: ${spring.application.name}:${random.value}
 
+# Configuración de logs
 logging:
   level:
-    com.insurtech.customer: DEBUG
+    com.insurtech.notification: DEBUG
     org.springframework.security: INFO
     org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+    org.hibernate.type.descriptor.sql.BasicBinder: INFO

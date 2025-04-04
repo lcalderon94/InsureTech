@@ -57,7 +57,7 @@ public class PolicyPaymentConsumer {
         // Lógica para gestionar pagos de renovación
     }
 
-    @KafkaListener(topics = "policy.canceled", groupId = "payment-service")
+    @KafkaListener(topics = "policy.cancelled", groupId = "payment-service")
     public void consumePolicyCanceledEvent(PolicyCanceledEvent event) {
         log.info("Recibido evento de póliza cancelada: {}", event.getPolicyNumber());
 
