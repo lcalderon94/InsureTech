@@ -35,8 +35,8 @@ spring:
   mail:
     host: smtp.office365.com
     port: 587
-    username: luis_1994_2010@hotmail.com
-    password: _Ingmetalurgia159263487
+    username:
+    password:
     properties:
       mail:
         smtp:
@@ -61,13 +61,13 @@ eureka:
 notification:
   email:
     enabled: ${EMAIL_ENABLED:true}
-    from: luis_1994_2010@hotmail.com
+    from:
     sender-name: ${EMAIL_SENDER_NAME:InsureTech}
   sms:
     enabled: ${SMS_ENABLED:true}
-    account-sid: AC42222c05cfd6edf65c762073ed0c663e
-    auth-token: 311f1d45e33a2623aef9f9498ce2d7a6
-    from-number: +17659816294
+    account-sid: 
+    auth-token:
+    from-number:
   retry:
     max-attempts: ${RETRY_MAX_ATTEMPTS:3}
     initial-interval: ${RETRY_INITIAL_INTERVAL:1000}
