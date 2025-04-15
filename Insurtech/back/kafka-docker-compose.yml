@@ -27,7 +27,7 @@ services:
     image: obsidiandynamics/kafdrop
     restart: "no"
     ports:
-      - "9000:9000"
+      - "9010:9000"    # Modificado: ahora expone puerto 9010 externamente, pero sigue siendo 9000 internamente
     environment:
       KAFKA_BROKERCONNECT: "kafka:29092"
       JVM_OPTS: "-Xms32M -Xmx64M"
