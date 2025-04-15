@@ -27,7 +27,7 @@ services:
     image: obsidiandynamics/kafdrop
     restart: "no"
     ports:
-      - "8080:9000"    # Cambiado a 8080 para evitar conflictos
+      - "9020:9000"    # Cambiado a 9020 para evitar conflictos
     environment:
       KAFKA_BROKERCONNECT: "kafka:29092"
       JVM_OPTS: "-Xms32M -Xmx64M"
