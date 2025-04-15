@@ -16,9 +16,9 @@ public class PolicyEventProducer {
 
     private static final Logger log = LoggerFactory.getLogger(PolicyEventProducer.class);
 
-    private static final String POLICY_CREATED_TOPIC = "policy-created";
-    private static final String POLICY_UPDATED_TOPIC = "policy-updated";
-    private static final String POLICY_STATUS_CHANGED_TOPIC = "policy-status-changed";
+    private static final String POLICY_CREATED_TOPIC = "policy.created";
+    private static final String POLICY_UPDATED_TOPIC = "policy.updated";
+    private static final String POLICY_STATUS_CHANGED_TOPIC = "policy.status.changed";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 

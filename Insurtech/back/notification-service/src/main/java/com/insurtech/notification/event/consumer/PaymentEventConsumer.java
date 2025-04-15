@@ -1,28 +1,18 @@
 package com.insurtech.notification.event.consumer;
 
 import com.insurtech.notification.event.model.PaymentEvent;
-import com.insurtech.notification.exception.NotificationException;
-import com.insurtech.notification.exception.TemplateNotFoundException;
-import com.insurtech.notification.model.dto.NotificationRequestDto;
-import com.insurtech.notification.model.entity.NotificationTemplate;
-import com.insurtech.notification.model.enums.NotificationPriority;
-import com.insurtech.notification.model.enums.NotificationType;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-
 @Component
 @Slf4j
 public class PaymentEventConsumer extends BaseEventConsumer<PaymentEvent> {
 
-    // Escuchar en los tópicos de Payment utilizando formato con punto
     @KafkaListener(topics = "payment.created", containerFactory = "paymentKafkaListenerContainerFactory")
     public void consumePaymentCreated(PaymentEvent event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de pago creado: {}", event.getPaymentReference());
@@ -47,117 +37,175 @@ public class PaymentEventConsumer extends BaseEventConsumer<PaymentEvent> {
         processEvent(event, acknowledgment);
     }
 
+    @KafkaListener(topics = "payment.reminder", containerFactory = "paymentKafkaListenerContainerFactory")
+    public void consumePaymentReminder(PaymentEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de recordatorio de pago: {}", event.getPaymentReference());
+        processEvent(event, acknowledgment);
+    }
+
     @Override
-    protected void processEventInternal(PaymentEvent event) throws NotificationException {
-        log.info("Procesando evento de pago: {} - {}", event.getPaymentReference(), event.getPaymentStatus());
-
-        // Determinar la plantilla según el estado del pago
-        String templateCode = determineTemplateCode(event);
-        if (templateCode == null) {
-            log.info("No se requiere notificación para este evento de pago: {}", event.getPaymentStatus());
-            return;
+    protected String determineEventType(PaymentEvent event) {
+        if (event.getEventType() != null) {
+            return event.getEventType();
         }
 
-        // Preparar datos para la plantilla
-        Map<String, Object> templateData = prepareTemplateData(event);
-
-        // Buscar la plantilla
-        Optional<NotificationTemplate> template = templateService.findTemplateByCode(templateCode);
-        if (template.isEmpty()) {
-            throw new TemplateNotFoundException("No se encontró la plantilla: " + templateCode);
+        // Determinar por estado
+        if (event.getPaymentStatus() != null) {
+            switch (event.getPaymentStatus()) {
+                case "SUCCESSFUL": return "payment.processed";
+                case "FAILED": return "payment.failed";
+                case "PENDING": return "payment.created";
+                case "REFUNDED": return "payment.refund.processed";
+                case "OVERDUE": return "payment.reminder";
+            }
         }
 
-        // Crear y enviar notificación por email
-        if (event.getCustomerEmail() != null && !event.getCustomerEmail().isBlank()) {
-            NotificationRequestDto emailRequest = NotificationRequestDto.builder()
-                    .type(NotificationType.EMAIL)
-                    .priority(determinePriority(event))
-                    .recipient(event.getCustomerEmail())
-                    .templateCode(templateCode)
-                    .templateVariables(templateData)
-                    .sourceEventId(event.getEventId().toString())
-                    .sourceEventType(event.getEventType())
-                    .build();
-
-            notificationService.createNotification(emailRequest);
+        // Determinar por descriptor
+        if (event.getDescription() != null) {
+            if (event.getDescription().toLowerCase().contains("refund")) {
+                return "payment.refund.processed";
+            }
+            if (event.getDescription().toLowerCase().contains("reminder")) {
+                return "payment.reminder";
+            }
         }
 
-        // Enviar SMS para pagos exitosos y fallidos
-        if (shouldSendSms(event) && event.getCustomerPhone() != null && !event.getCustomerPhone().isBlank()) {
-            NotificationRequestDto smsRequest = NotificationRequestDto.builder()
-                    .type(NotificationType.SMS)
-                    .priority(NotificationPriority.HIGH)
-                    .recipient(event.getCustomerPhone())
-                    .templateCode(templateCode + "_SMS")
-                    .templateVariables(templateData)
-                    .sourceEventId(event.getEventId().toString())
-                    .sourceEventType(event.getEventType())
-                    .build();
-
-            notificationService.createNotification(smsRequest);
-        }
+        return "payment.event"; // Valor por defecto
     }
 
-    private String determineTemplateCode(PaymentEvent event) {
-        switch (event.getPaymentStatus()) {
-            case "SUCCESSFUL":
-                return "payment_confirmation";
-            case "FAILED":
-                return "payment_failed";
-            case "PENDING":
-                return "payment_pending";
-            case "OVERDUE":
-                return "payment_overdue";
-            case "REFUNDED":
-                return "payment_refunded";
-            default:
-                return null;
+    @Override
+    protected Map<String, Object> extractVariables(PaymentEvent event) {
+        Map<String, Object> variables = new HashMap<>();
+
+        // Datos básicos
+        variables.put("paymentReference", event.getPaymentReference());
+        variables.put("policyNumber", event.getPolicyNumber());
+        variables.put("customerName", event.getCustomerName());
+
+        // Importe y moneda
+        if (event.getAmount() != null) {
+            variables.put("paymentAmount", formatCurrency(event.getAmount()));
+            variables.put("amount", formatCurrency(event.getAmount())); // Alias para compatibilidad
+            variables.put("refundAmount", formatCurrency(event.getAmount())); // Para reembolsos
+            variables.put("amountDue", formatCurrency(event.getAmount())); // Para recordatorios
         }
-    }
+        variables.put("currency", event.getCurrency() != null ? event.getCurrency() : "EUR");
 
-    private Map<String, Object> prepareTemplateData(PaymentEvent event) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("paymentReference", event.getPaymentReference());
-        data.put("policyNumber", event.getPolicyNumber());
-        data.put("customerName", event.getCustomerName());
-        data.put("amount", event.getAmount());
-        data.put("currency", event.getCurrency());
-        data.put("paymentMethod", event.getPaymentMethod());
-        data.put("paymentDate", event.getPaymentDate());
-        data.put("dueDate", event.getDueDate());
-        data.put("status", event.getPaymentStatus());
-        data.put("description", event.getDescription());
+        // Método de pago
+        variables.put("paymentMethod", formatPaymentMethod(event.getPaymentMethod()));
 
-        // Calcular días de retraso si es una factura vencida
-        if ("OVERDUE".equals(event.getPaymentStatus()) && event.getDueDate() != null) {
-            long daysOverdue = ChronoUnit.DAYS.between(event.getDueDate(), LocalDate.now());
-            data.put("daysOverdue", daysOverdue);
+        // Formatear fechas
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        if (event.getPaymentDate() != null) {
+            variables.put("paymentDate", event.getPaymentDate().format(dateFormatter));
+            variables.put("processedDate", event.getPaymentDate().format(dateFormatter)); // Alias
+        } else {
+            variables.put("processedDate", java.time.LocalDate.now().format(dateFormatter));
         }
 
-        // Agregar detalles adicionales si existen
+        if (event.getDueDate() != null) {
+            variables.put("dueDate", event.getDueDate().format(dateFormatter));
+        }
+
+        // Datos específicos para pagos fallidos
+        if ("FAILED".equals(event.getPaymentStatus())) {
+            variables.put("attemptDate", java.time.LocalDate.now().format(dateFormatter));
+            variables.put("failureReason", getFailureReason(event));
+            // Calcular fecha límite de período de gracia (ejemplo: 5 días)
+            variables.put("gracePeriodDate", java.time.LocalDate.now().plusDays(5).format(dateFormatter));
+        }
+
+        // Datos específicos para reembolsos
+        if ("REFUNDED".equals(event.getPaymentStatus()) ||
+                (event.getEventType() != null && event.getEventType().contains("refund"))) {
+            variables.put("refundTimeframeDays", "3-5"); // O un valor dinámico
+        }
+
+        // Datos para recordatorios
+        if ("OVERDUE".equals(event.getPaymentStatus()) ||
+                (event.getEventType() != null && event.getEventType().contains("reminder"))) {
+            // ID para enlace de pago
+            variables.put("paymentId", event.getPaymentId().toString());
+        }
+
+        // Descripción
+        if (event.getDescription() != null) {
+            variables.put("description", event.getDescription());
+        }
+
+        // Agregar detalles adicionales
         if (event.getAdditionalDetails() != null) {
-            data.putAll(event.getAdditionalDetails());
+            variables.putAll(event.getAdditionalDetails());
         }
 
-        return data;
+        return variables;
     }
 
-    private NotificationPriority determinePriority(PaymentEvent event) {
-        switch (event.getPaymentStatus()) {
-            case "FAILED":
-            case "OVERDUE":
-                return NotificationPriority.HIGH;
-            case "SUCCESSFUL":
-            case "REFUNDED":
-                return NotificationPriority.MEDIUM;
-            default:
-                return NotificationPriority.LOW;
+    @Override
+    protected String extractEmail(PaymentEvent event) {
+        if (event.getCustomerEmail() != null && !event.getCustomerEmail().trim().isEmpty()) {
+            return event.getCustomerEmail();
+        }
+
+        if (event.getAdditionalDetails() != null) {
+            Object email = event.getAdditionalDetails().get("customerEmail");
+            if (email != null && !email.toString().trim().isEmpty()) {
+                return email.toString();
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    protected String extractPhone(PaymentEvent event) {
+        if (event.getCustomerPhone() != null && !event.getCustomerPhone().trim().isEmpty()) {
+            return event.getCustomerPhone();
+        }
+
+        if (event.getAdditionalDetails() != null) {
+            Object phone = event.getAdditionalDetails().get("customerPhone");
+            if (phone != null && !phone.toString().trim().isEmpty()) {
+                return phone.toString();
+            }
+        }
+
+        return null;
+    }
+
+    // Métodos auxiliares
+
+    private String formatCurrency(java.math.BigDecimal amount) {
+        if (amount == null) {
+            return "0.00";
+        }
+        return amount.setScale(2, java.math.RoundingMode.HALF_UP).toString();
+    }
+
+    private String formatPaymentMethod(String method) {
+        if (method == null) {
+            return "tarjeta";
+        }
+
+        switch (method.toUpperCase()) {
+            case "CREDIT_CARD": return "tarjeta de crédito";
+            case "DEBIT_CARD": return "tarjeta de débito";
+            case "BANK_TRANSFER": return "transferencia bancaria";
+            case "DIRECT_DEBIT": return "domiciliación bancaria";
+            default: return method.toLowerCase();
         }
     }
 
-    private boolean shouldSendSms(PaymentEvent event) {
-        return "SUCCESSFUL".equals(event.getPaymentStatus()) ||
-                "FAILED".equals(event.getPaymentStatus()) ||
-                "OVERDUE".equals(event.getPaymentStatus());
+    private String getFailureReason(PaymentEvent event) {
+        if (event.getDescription() != null && !event.getDescription().isEmpty()) {
+            return event.getDescription();
+        }
+
+        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("failureReason")) {
+            return event.getAdditionalDetails().get("failureReason").toString();
+        }
+
+        return "problemas con el método de pago"; // Valor genérico
     }
 }

@@ -33,18 +33,21 @@ spring:
       properties:
         spring.json.add.type.headers: false
   mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME:test@gmail.com}
-    password: ${MAIL_PASSWORD:password}
+    host: smtp.office365.com
+    port: 587
+    username: luis_1994_2010@hotmail.com
+    password: _Ingmetalurgia159263487
     properties:
       mail:
         smtp:
           auth: true
           starttls:
             enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
-# Configuraci髇 de Eureka
+# Configuraci贸n de Eureka
 eureka:
   client:
     service-url:
@@ -54,24 +57,24 @@ eureka:
   instance:
     prefer-ip-address: true
 
-# Configuraci髇 para Servicio de Notificaciones
+# Configuraci贸n para Servicio de Notificaciones
 notification:
   email:
     enabled: ${EMAIL_ENABLED:true}
-    from: ${EMAIL_FROM:noreply@insurtech.com}
+    from: luis_1994_2010@hotmail.com
     sender-name: ${EMAIL_SENDER_NAME:InsureTech}
   sms:
     enabled: ${SMS_ENABLED:true}
-    account-sid: ${TWILIO_ACCOUNT_SID:account_sid}
-    auth-token: ${TWILIO_AUTH_TOKEN:auth_token}
-    from-number: ${TWILIO_FROM_NUMBER:+1234567890}
+    account-sid: AC42222c05cfd6edf65c762073ed0c663e
+    auth-token: 311f1d45e33a2623aef9f9498ce2d7a6
+    from-number: +17659816294
   retry:
     max-attempts: ${RETRY_MAX_ATTEMPTS:3}
     initial-interval: ${RETRY_INITIAL_INTERVAL:1000}
     multiplier: ${RETRY_MULTIPLIER:2.0}
     max-interval: ${RETRY_MAX_INTERVAL:60000}
 
-# Configuraci髇 de Throttling
+# Configuraci贸n de Throttling
 throttling:
   enabled: ${THROTTLING_ENABLED:true}
   limit-per-second: ${THROTTLING_LIMIT:10}
@@ -90,14 +93,14 @@ management:
     health:
       show-details: always
 
-# Configuraci髇 de OpenAPI para documentaci髇 de API
+# Configuraci贸n de OpenAPI para documentaci贸n de API
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
 
-# Configuraci髇 de seguridad JWT
+# Configuraci贸n de seguridad JWT
 security:
   jwt:
     secret: ${JWT_SECRET:insurtech-notification-service-secret-key}

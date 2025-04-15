@@ -1,29 +1,18 @@
 package com.insurtech.notification.event.consumer;
 
 import com.insurtech.notification.event.model.PolicyEvent;
-import com.insurtech.notification.exception.NotificationException;
-import com.insurtech.notification.exception.TemplateNotFoundException;
-import com.insurtech.notification.model.dto.NotificationRequestDto;
-import com.insurtech.notification.model.entity.NotificationTemplate;
-import com.insurtech.notification.model.enums.NotificationPriority;
-import com.insurtech.notification.model.enums.NotificationType;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 @Component
 @Slf4j
 public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
 
-    // Escuchar en los tópicos exactos que produce PolicyEventProducer
     @KafkaListener(topics = "policy.created", containerFactory = "policyKafkaListenerContainerFactory")
     public void consumePolicyCreated(PolicyEvent event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de póliza creada: {}", event.getPolicyNumber());
@@ -42,112 +31,154 @@ public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
         processEvent(event, acknowledgment);
     }
 
+    @KafkaListener(topics = "policy.cancelled", containerFactory = "policyKafkaListenerContainerFactory")
+    public void consumePolicyCancelled(PolicyEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cancelación de póliza: {}", event.getPolicyNumber());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "policy.renewed", containerFactory = "policyKafkaListenerContainerFactory")
+    public void consumePolicyRenewed(PolicyEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de renovación de póliza: {}", event.getPolicyNumber());
+        processEvent(event, acknowledgment);
+    }
+
     @Override
-    protected void processEventInternal(PolicyEvent event) throws NotificationException {
-        log.info("Procesando evento de póliza: {}, tipo: {}", event.getPolicyNumber(), event.getActionType());
-
-        // Determinar qué plantilla usar según el tipo de evento
-        String templateCode = determineTemplateCode(event);
-        if (templateCode == null) {
-            log.info("No se requiere notificación para este evento de póliza: {}", event.getActionType());
-            return;
+    protected String determineEventType(PolicyEvent event) {
+        // Determinar el tipo de evento basado en el tópico Kafka o en los datos del evento
+        if (event.getActionType() != null) {
+            return "policy." + event.getActionType().toLowerCase();
         }
 
-        // Preparar los datos para la plantilla
-        Map<String, Object> templateData = prepareTemplateData(event);
-
-        // Buscar la plantilla
-        Optional<NotificationTemplate> template = templateService.findTemplateByCode(templateCode);
-        if (template.isEmpty()) {
-            throw new TemplateNotFoundException("No se encontró la plantilla: " + templateCode);
+        // Usar el eventType directamente del evento si está disponible
+        if (event.getEventType() != null) {
+            return event.getEventType();
         }
 
-        // Crear y enviar notificación por email
-        if (event.getCustomerEmail() != null && !event.getCustomerEmail().isBlank()) {
-            NotificationRequestDto emailRequest = NotificationRequestDto.builder()
-                    .type(NotificationType.EMAIL)
-                    .priority(determinePriority(event))
-                    .recipient(event.getCustomerEmail())
-                    .templateCode(templateCode)
-                    .templateVariables(templateData)
-                    .sourceEventId(event.getEventId().toString())
-                    .sourceEventType(event.getEventType())
-                    .build();
-
-            notificationService.createNotification(emailRequest);
+        // Valor por defecto basado en la presencia de ciertos campos
+        if (event.getPolicyStatus() != null && event.getAdditionalDetails() != null
+                && event.getAdditionalDetails().containsKey("previousStatus")) {
+            return "policy.status.changed";
         }
 
-        // Crear y enviar notificación por SMS para eventos críticos
-        if (isCriticalEvent(event) && event.getCustomerPhone() != null && !event.getCustomerPhone().isBlank()) {
-            NotificationRequestDto smsRequest = NotificationRequestDto.builder()
-                    .type(NotificationType.SMS)
-                    .priority(NotificationPriority.HIGH)
-                    .recipient(event.getCustomerPhone())
-                    .templateCode(templateCode + "_SMS")
-                    .templateVariables(templateData)
-                    .sourceEventId(event.getEventId().toString())
-                    .sourceEventType(event.getEventType())
-                    .build();
-
-            notificationService.createNotification(smsRequest);
-        }
+        return "policy.event"; // Último recurso
     }
 
-    private String determineTemplateCode(PolicyEvent event) {
-        switch (event.getActionType()) {
-            case "CREATED":
-                return "policy_created";
-            case "RENEWED":
-                return "policy_renewed";
-            case "CANCELLED":
-                return "policy_cancelled";
-            case "UPDATED":
-                return "policy_updated";
-            case "EXPIRING_SOON":
-                // Solo notificar si la fecha de vencimiento está a menos de 30 días
-                if (event.getExpirationDate() != null &&
-                        ChronoUnit.DAYS.between(LocalDate.now(), event.getExpirationDate()) <= 30) {
-                    return "policy_expiring_soon";
-                }
-                return null;
-            default:
-                return null;
+    @Override
+    protected Map<String, Object> extractVariables(PolicyEvent event) {
+        Map<String, Object> variables = new HashMap<>();
+
+        // Datos básicos de póliza
+        variables.put("policyNumber", event.getPolicyNumber());
+        variables.put("policyType", event.getPolicyType());
+        variables.put("customerName", event.getCustomerName());
+
+        // Formatear fechas
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (event.getEffectiveDate() != null) {
+            variables.put("effectiveDate", event.getEffectiveDate().format(dateFormatter));
         }
-    }
+        if (event.getExpirationDate() != null) {
+            variables.put("expirationDate", event.getExpirationDate().format(dateFormatter));
+        }
 
-    private Map<String, Object> prepareTemplateData(PolicyEvent event) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("policyNumber", event.getPolicyNumber());
-        data.put("policyType", event.getPolicyType());
-        data.put("customerName", event.getCustomerName());
-        data.put("effectiveDate", event.getEffectiveDate());
-        data.put("expirationDate", event.getExpirationDate());
-        data.put("status", event.getPolicyStatus());
-        data.put("actionType", event.getActionType());
+        // Datos de renovación
+        if (event.getActionType() != null && event.getActionType().equals("RENEWED")) {
+            variables.put("newEffectiveDate", event.getEffectiveDate().format(dateFormatter));
+            variables.put("newExpirationDate", event.getExpirationDate().format(dateFormatter));
+            if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("newPremium")) {
+                variables.put("newPremium", event.getAdditionalDetails().get("newPremium"));
+            }
+        }
 
-        // Agregar detalles adicionales si existen
+        // Datos de cambio de estado
+        if (event.getPolicyStatus() != null) {
+            variables.put("newStatus", event.getPolicyStatus());
+            if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("previousStatus")) {
+                variables.put("previousStatus", event.getAdditionalDetails().get("previousStatus"));
+            }
+            variables.put("statusChangeImpact", getStatusChangeImpact(event.getPolicyStatus()));
+        }
+
+        // Datos de cancelación
+        if (event.getActionType() != null && event.getActionType().equals("CANCELLED")) {
+            variables.put("cancellationDate", getCurrentDate(dateFormatter));
+            variables.put("coverageEndDate", event.getExpirationDate().format(dateFormatter));
+            variables.put("refundInfoShort", getRefundInfo(event));
+        }
+
+        // Para vencimiento próximo
+        if (event.getExpirationDate() != null) {
+            long daysUntil = java.time.temporal.ChronoUnit.DAYS.between(
+                    java.time.LocalDate.now(), event.getExpirationDate());
+            variables.put("daysUntilExpiration", String.valueOf(daysUntil));
+        }
+
+        // Prima
+        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("premium")) {
+            variables.put("premium", event.getAdditionalDetails().get("premium"));
+        }
+
+        // Incluir datos adicionales
         if (event.getAdditionalDetails() != null) {
-            data.putAll(event.getAdditionalDetails());
+            variables.putAll(event.getAdditionalDetails());
         }
 
-        return data;
+        return variables;
     }
 
-    private NotificationPriority determinePriority(PolicyEvent event) {
-        switch (event.getActionType()) {
-            case "CANCELLED":
-            case "EXPIRING_SOON":
-                return NotificationPriority.HIGH;
-            case "CREATED":
-            case "RENEWED":
-                return NotificationPriority.MEDIUM;
-            default:
-                return NotificationPriority.LOW;
+    @Override
+    protected String extractEmail(PolicyEvent event) {
+        if (event.getCustomerEmail() != null && !event.getCustomerEmail().trim().isEmpty()) {
+            return event.getCustomerEmail();
+        }
+
+        if (event.getAdditionalDetails() != null) {
+            Object email = event.getAdditionalDetails().get("customerEmail");
+            if (email != null && !email.toString().trim().isEmpty()) {
+                return email.toString();
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    protected String extractPhone(PolicyEvent event) {
+        if (event.getCustomerPhone() != null && !event.getCustomerPhone().trim().isEmpty()) {
+            return event.getCustomerPhone();
+        }
+
+        if (event.getAdditionalDetails() != null) {
+            Object phone = event.getAdditionalDetails().get("customerPhone");
+            if (phone != null && !phone.toString().trim().isEmpty()) {
+                return phone.toString();
+            }
+        }
+
+        return null;
+    }
+
+    // Métodos auxiliares
+
+    private String getStatusChangeImpact(String newStatus) {
+        switch (newStatus) {
+            case "ACTIVE": return "Su cobertura está ahora activa.";
+            case "SUSPENDED": return "Su cobertura está temporalmente suspendida.";
+            case "CANCELLED": return "Su cobertura ha finalizado.";
+            case "PENDING_PAYMENT": return "Pendiente de pago para activar cobertura.";
+            default: return "Por favor revise detalles en su área personal.";
         }
     }
 
-    private boolean isCriticalEvent(PolicyEvent event) {
-        List<String> criticalEvents = List.of("CANCELLED", "EXPIRING_SOON");
-        return criticalEvents.contains(event.getActionType());
+    private String getRefundInfo(PolicyEvent event) {
+        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("refundAmount")) {
+            return "Reembolso: " + event.getAdditionalDetails().get("refundAmount") + "€.";
+        }
+        return "Consulte detalles de reembolso en su área personal.";
+    }
+
+    private String getCurrentDate(DateTimeFormatter formatter) {
+        return java.time.LocalDate.now().format(formatter);
     }
 }

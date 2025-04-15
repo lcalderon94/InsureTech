@@ -1,27 +1,18 @@
 package com.insurtech.notification.event.consumer;
 
 import com.insurtech.notification.event.model.ClaimEvent;
-import com.insurtech.notification.exception.NotificationException;
-import com.insurtech.notification.exception.TemplateNotFoundException;
-import com.insurtech.notification.model.dto.NotificationRequestDto;
-import com.insurtech.notification.model.entity.NotificationTemplate;
-import com.insurtech.notification.model.enums.NotificationPriority;
-import com.insurtech.notification.model.enums.NotificationType;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
 @Component
 @Slf4j
 public class ClaimEventConsumer extends BaseEventConsumer<ClaimEvent> {
 
-    // Escuchar en los tópicos exactos que produce ClaimEventProducer
     @KafkaListener(topics = "claim.created", containerFactory = "claimKafkaListenerContainerFactory")
     public void consumeClaimCreated(ClaimEvent event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de reclamación creada: {}", event.getClaimNumber());
@@ -40,144 +31,191 @@ public class ClaimEventConsumer extends BaseEventConsumer<ClaimEvent> {
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "claim.item.added", containerFactory = "claimKafkaListenerContainerFactory")
-    public void consumeClaimItemAdded(ClaimEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de ítem añadido a reclamación: {}", event.getClaimNumber());
+    @KafkaListener(topics = "claim.approved", containerFactory = "claimKafkaListenerContainerFactory")
+    public void consumeClaimApproved(ClaimEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación aprobada: {}", event.getClaimNumber());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "claim.rejected", containerFactory = "claimKafkaListenerContainerFactory")
+    public void consumeClaimRejected(ClaimEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación rechazada: {}", event.getClaimNumber());
+        processEvent(event, acknowledgment);
+    }
+
+    @KafkaListener(topics = "claim.document.required", containerFactory = "claimKafkaListenerContainerFactory")
+    public void consumeClaimDocumentRequired(ClaimEvent event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de documentación requerida para reclamación: {}", event.getClaimNumber());
         processEvent(event, acknowledgment);
     }
 
     @Override
-    protected void processEventInternal(ClaimEvent event) throws NotificationException {
-        log.info("Procesando evento de reclamación: {} - Cambio de estado: {} -> {}",
-                event.getClaimNumber(), event.getPreviousStatus(), event.getClaimStatus());
-
-        // Solo notificar cambios de estado o si es un evento explícito
-        if (event.getPreviousStatus() != null && event.getPreviousStatus().equals(event.getClaimStatus())
-                && !"NOTIFICATION_REQUESTED".equals(event.getEventType())) {
-            log.info("Sin cambios significativos en la reclamación, no se enviará notificación");
-            return;
+    protected String determineEventType(ClaimEvent event) {
+        if (event.getClaimStatus() != null) {
+            if ("APPROVED".equals(event.getClaimStatus())) {
+                return "claim.approved";
+            } else if ("REJECTED".equals(event.getClaimStatus())) {
+                return "claim.rejected";
+            } else if (event.getPreviousStatus() != null && !event.getPreviousStatus().equals(event.getClaimStatus())) {
+                return "claim.status.changed";
+            }
         }
 
-        // Determinar la plantilla según el estado de la reclamación
-        String templateCode = determineTemplateCode(event);
-        if (templateCode == null) {
-            log.info("No se requiere notificación para este estado de reclamación: {}", event.getClaimStatus());
-            return;
+        if (event.getEventType() != null) {
+            return event.getEventType();
         }
 
-        // Preparar datos para la plantilla
-        Map<String, Object> templateData = prepareTemplateData(event);
-
-        // Buscar la plantilla
-        Optional<NotificationTemplate> template = templateService.findTemplateByCode(templateCode);
-        if (template.isEmpty()) {
-            throw new TemplateNotFoundException("No se encontró la plantilla: " + templateCode);
+        // Determinar basado en la presencia de campos específicos
+        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("documentsRequired")) {
+            return "claim.document.required";
         }
 
-        // Crear y enviar notificación por email
-        if (event.getCustomerEmail() != null && !event.getCustomerEmail().isBlank()) {
-            NotificationRequestDto emailRequest = NotificationRequestDto.builder()
-                    .type(NotificationType.EMAIL)
-                    .priority(determinePriority(event))
-                    .recipient(event.getCustomerEmail())
-                    .templateCode(templateCode)
-                    .templateVariables(templateData)
-                    .sourceEventId(event.getEventId().toString())
-                    .sourceEventType(event.getEventType())
-                    .build();
-
-            notificationService.createNotification(emailRequest);
-        }
-
-        // Enviar SMS para cambios de estado importantes
-        if (isImportantStatusChange(event) && event.getCustomerPhone() != null && !event.getCustomerPhone().isBlank()) {
-            NotificationRequestDto smsRequest = NotificationRequestDto.builder()
-                    .type(NotificationType.SMS)
-                    .priority(determinePriority(event))
-                    .recipient(event.getCustomerPhone())
-                    .templateCode(templateCode + "_SMS")
-                    .templateVariables(templateData)
-                    .sourceEventId(event.getEventId().toString())
-                    .sourceEventType(event.getEventType())
-                    .build();
-
-            notificationService.createNotification(smsRequest);
-        }
+        return "claim.updated"; // Valor por defecto
     }
 
-    private String determineTemplateCode(ClaimEvent event) {
-        switch (event.getClaimStatus()) {
-            case "SUBMITTED":
-                return "claim_submitted";
-            case "IN_REVIEW":
-                return "claim_in_review";
-            case "APPROVED":
-                return "claim_approved";
-            case "REJECTED":
-                return "claim_rejected";
-            case "PENDING_INFO":
-                return "claim_pending_info";
-            case "PAYMENT_PROCESSED":
-                return "claim_payment_processed";
-            default:
-                return "claim_status_update";
+    @Override
+    protected Map<String, Object> extractVariables(ClaimEvent event) {
+        Map<String, Object> variables = new HashMap<>();
+
+        // Datos básicos
+        variables.put("claimNumber", event.getClaimNumber());
+        variables.put("claimId", event.getClaimId().toString());
+        variables.put("policyNumber", event.getPolicyNumber());
+        variables.put("customerName", event.getCustomerName());
+        variables.put("claimType", event.getClaimType());
+
+        // Referencia
+        variables.put("claimReference", event.getClaimNumber()); // O una referencia específica si existe
+
+        // Estado
+        if (event.getClaimStatus() != null) {
+            variables.put("newStatus", formatStatus(event.getClaimStatus()));
+            if (event.getPreviousStatus() != null) {
+                variables.put("previousStatus", formatStatus(event.getPreviousStatus()));
+            }
         }
-    }
 
-    private Map<String, Object> prepareTemplateData(ClaimEvent event) {
-        Map<String, Object> data = new HashMap<>();
-        data.put("claimNumber", event.getClaimNumber());
-        data.put("policyNumber", event.getPolicyNumber());
-        data.put("customerName", event.getCustomerName());
-        data.put("claimStatus", formatStatusForDisplay(event.getClaimStatus()));
-        data.put("previousStatus", formatStatusForDisplay(event.getPreviousStatus()));
-        data.put("claimType", event.getClaimType());
-        data.put("incidentDate", event.getIncidentDate());
-        data.put("reportDate", event.getReportDate());
-        data.put("claimAmount", event.getClaimAmount());
-        data.put("approvedAmount", event.getApprovedAmount());
-        data.put("description", event.getDescription());
-        data.put("statusNotes", event.getStatusNotes());
+        // Formatear fechas
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        if (event.getIncidentDate() != null) {
+            variables.put("incidentDate", event.getIncidentDate().format(dateFormatter));
+        }
+        if (event.getReportDate() != null) {
+            variables.put("reportDate", event.getReportDate().format(dateFormatter));
+        }
 
-        // Agregar detalles adicionales si existen
+        // Importes
+        if (event.getClaimAmount() != null) {
+            variables.put("claimAmount", formatCurrency(event.getClaimAmount()));
+        }
+        if (event.getApprovedAmount() != null) {
+            variables.put("approvedAmount", formatCurrency(event.getApprovedAmount()));
+        }
+
+        // Datos específicos para aprobación
+        if ("APPROVED".equals(event.getClaimStatus())) {
+            variables.put("paymentDays", "5"); // O calcularlo dinámicamente
+            variables.put("approvalDate", java.time.LocalDate.now().format(dateFormatter));
+        }
+
+        // Datos específicos para rechazo
+        if ("REJECTED".equals(event.getClaimStatus())) {
+            variables.put("rejectionReasonShort", getShortRejectionReason(event));
+        }
+
+        // Datos para documento requerido
+        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("documentsRequired")) {
+            // Calcular una fecha límite (ejemplo: 15 días)
+            variables.put("deadlineDate", java.time.LocalDate.now().plusDays(15).format(dateFormatter));
+        }
+
+        // Descripción
+        if (event.getDescription() != null) {
+            variables.put("description", event.getDescription());
+        }
+
+        // Notas
+        if (event.getStatusNotes() != null) {
+            variables.put("statusNotes", event.getStatusNotes());
+        }
+
+        // Agregar detalles adicionales
         if (event.getAdditionalDetails() != null) {
-            data.putAll(event.getAdditionalDetails());
+            variables.putAll(event.getAdditionalDetails());
         }
 
-        return data;
+        return variables;
     }
 
-    private NotificationPriority determinePriority(ClaimEvent event) {
-        switch (event.getClaimStatus()) {
-            case "APPROVED":
-            case "REJECTED":
-            case "PAYMENT_PROCESSED":
-                return NotificationPriority.HIGH;
-            case "IN_REVIEW":
-            case "PENDING_INFO":
-                return NotificationPriority.MEDIUM;
-            default:
-                return NotificationPriority.LOW;
+    @Override
+    protected String extractEmail(ClaimEvent event) {
+        if (event.getCustomerEmail() != null && !event.getCustomerEmail().trim().isEmpty()) {
+            return event.getCustomerEmail();
         }
+
+        if (event.getAdditionalDetails() != null) {
+            Object email = event.getAdditionalDetails().get("customerEmail");
+            if (email != null && !email.toString().trim().isEmpty()) {
+                return email.toString();
+            }
+        }
+
+        return null;
     }
 
-    private boolean isImportantStatusChange(ClaimEvent event) {
-        List<String> importantStatuses = List.of(
-                "APPROVED", "REJECTED", "PAYMENT_PROCESSED", "PENDING_INFO");
-        return importantStatuses.contains(event.getClaimStatus());
+    @Override
+    protected String extractPhone(ClaimEvent event) {
+        if (event.getCustomerPhone() != null && !event.getCustomerPhone().trim().isEmpty()) {
+            return event.getCustomerPhone();
+        }
+
+        if (event.getAdditionalDetails() != null) {
+            Object phone = event.getAdditionalDetails().get("customerPhone");
+            if (phone != null && !phone.toString().trim().isEmpty()) {
+                return phone.toString();
+            }
+        }
+
+        return null;
     }
 
-    private String formatStatusForDisplay(String status) {
+    // Métodos auxiliares
+
+    private String formatStatus(String status) {
         if (status == null) {
-            return null;
+            return "";
         }
 
-        // Convertir formato SNAKE_CASE a Título
+        // Convertir de SNAKE_CASE a formato normal
         return status.replace("_", " ")
                 .toLowerCase()
                 .replace(
                         status.toLowerCase().charAt(0),
                         Character.toUpperCase(status.charAt(0))
                 );
+    }
+
+    private String formatCurrency(java.math.BigDecimal amount) {
+        if (amount == null) {
+            return "0.00";
+        }
+        return amount.setScale(2, java.math.RoundingMode.HALF_UP).toString();
+    }
+
+    private String getShortRejectionReason(ClaimEvent event) {
+        if (event.getStatusNotes() != null && !event.getStatusNotes().isEmpty()) {
+            // Devolver versión resumida de las notas (primeros 50 caracteres o primera frase)
+            String notes = event.getStatusNotes();
+            if (notes.length() > 50) {
+                return notes.substring(0, 47) + "...";
+            }
+            return notes;
+        }
+
+        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("rejectionReason")) {
+            return event.getAdditionalDetails().get("rejectionReason").toString();
+        }
+
+        return "Fuera de cobertura"; // Razón genérica
     }
 }
