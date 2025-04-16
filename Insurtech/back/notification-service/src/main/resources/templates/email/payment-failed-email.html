@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pago Fallido</title>
+  <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #003366; padding: 15px; text-align: center; }
+        .header img { max-height: 50px; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #666; }
+        h1, h2 { color: #003366; }
+        .alert-box { background-color: #fff; padding: 15px; margin: 15px 0; border-left: 4px solid #ff3333; }
+        .options-box { background-color: #fff; padding: 15px; margin: 15px 0; border-left: 4px solid #ff9900; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #003366; color: white; text-decoration: none; border-radius: 4px; }
+        .retry-btn { background-color: #4CAF50; }
+    </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://ejemplo.com/logo.png" alt="InsureTech Logo">
+  </div>
+  <div class="content">
+    <h1>Información importante sobre su pago</h1>
+    <p>Estimado/a <strong>${customerName}</strong>,</p>
+    <p>Lamentamos informarle que hemos detectado un problema al procesar su pago para la póliza <strong>${policyNumber}</strong>.</p>
+
+    <div class="alert-box">
+      <h2>Detalles del intento de pago:</h2>
+      <p><strong>Importe:</strong> ${paymentAmount}€</p>
+      <p><strong>Fecha del intento:</strong> ${attemptDate}</p>
+      <p><strong>Referencia:</strong> ${paymentReference}</p>
+      <p><strong>Método de pago:</strong> ${paymentMethod}</p>
+      <p><strong>Motivo del fallo:</strong> ${failureReason}</p>
+    </div>
+
+    <div class="options-box">
+      <h2>¿Qué puede hacer ahora?</h2>
+      <p><strong>1. Verificar su método de pago:</strong> Compruebe que su tarjeta no esté caducada y tenga fondos suficientes, o que su cuenta bancaria tenga saldo disponible.</p>
+      <p><strong>2. Actualizar su método de pago:</strong> Puede actualizar sus datos de pago en nuestra plataforma.</p>
+      <p><strong>3. Realizar el pago manualmente:</strong> Puede efectuar el pago a través de nuestra plataforma con otro método.</p>
+    </div>
+
+    <p><strong>Importante:</strong> Para mantener su póliza activa y garantizar su cobertura, es necesario regularizar este pago antes del <strong>${gracePeriodDate}</strong>.</p>
+
+    <p>Puede gestionar este pago fácilmente a través de nuestra plataforma:</p>
+    <p style="text-align: center;">
+      <a href="https://insurtech.ejemplo.com/pagos/${paymentId}/reintentar" class="btn retry-btn">Reintentar pago</a>
+    </p>
+
+    <p>Si necesita ayuda o tiene alguna pregunta, no dude en contactar con nuestro servicio de atención al cliente llamando al ${customerServicePhone}.</p>
+  </div>
+  <div class="footer">
+    <p>Este mensaje es confidencial y está dirigido únicamente a ${customerName}.</p>
+    <p>© ${currentYear} InsureTech. Todos los derechos reservados.</p>
+    <p>C/ Ejemplo, 123 - 28000 Madrid</p>
+  </div>
+</div>
+</body>
+</html>

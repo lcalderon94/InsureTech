@@ -37,7 +37,8 @@ public class NotificationTemplate {
     @Column(nullable = false)
     private String subject;
 
-    @Column(nullable = false, length = 4000)
+    @Lob
+    @Column(nullable = false)
     private String content;
 
     @Column(name = "is_active", nullable = false)

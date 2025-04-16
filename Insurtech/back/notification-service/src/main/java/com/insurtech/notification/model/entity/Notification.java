@@ -46,7 +46,8 @@ public class Notification {
     @Column(nullable = false)
     private String subject;
 
-    @Column(nullable = false, length = 4000)
+    @Lob
+    @Column(nullable = false)
     private String content;
 
     @Column(nullable = false)
@@ -78,8 +79,8 @@ public class Notification {
     @Column(name = "sent_time")
     private LocalDateTime sentTime;
 
-    @Column(name = "data_context")
     @Lob
+    @Column(name = "data_context")
     private String dataContext;
 
     @CreationTimestamp

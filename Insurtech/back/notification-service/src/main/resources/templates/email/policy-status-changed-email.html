@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cambio de Estado en su Póliza</title>
+  <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #003366; padding: 15px; text-align: center; }
+        .header img { max-height: 50px; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #666; }
+        h1, h2 { color: #003366; }
+        .status-box { background-color: #fff; padding: 15px; margin: 15px 0; border-left: 4px solid #4CAF50; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #003366; color: white; text-decoration: none; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://ejemplo.com/logo.png" alt="InsureTech Logo">
+  </div>
+  <div class="content">
+    <h1>Cambio de estado en su póliza</h1>
+    <p>Estimado/a <strong>${customerName}</strong>,</p>
+    <p>Le informamos que el estado de su póliza <strong>${policyNumber}</strong> ha cambiado.</p>
+
+    <div class="status-box">
+      <h2>Detalles del cambio:</h2>
+      <p><strong>Estado anterior:</strong> ${oldStatus}</p>
+      <p><strong>Nuevo estado:</strong> ${newStatus}</p>
+      <p><strong>Fecha del cambio:</strong> ${statusChangeDate}</p>
+      <p><strong>Motivo:</strong> ${statusChangeReason}</p>
+    </div>
+
+    <p>Este cambio de estado ${statusChangeImpact}.</p>
+
+    <p>Para más información o si desea realizar alguna consulta sobre este cambio, por favor contacte con nosotros:</p>
+    <p style="text-align: center;">
+      <a href="https://insurtech.ejemplo.com/contacto" class="btn">Contactar</a>
+    </p>
+  </div>
+  <div class="footer">
+    <p>Este mensaje es confidencial y está dirigido únicamente a ${customerName}.</p>
+    <p>© ${currentYear} InsureTech. Todos los derechos reservados.</p>
+    <p>C/ Ejemplo, 123 - 28000 Madrid</p>
+  </div>
+</div>
+</body>
+</html>

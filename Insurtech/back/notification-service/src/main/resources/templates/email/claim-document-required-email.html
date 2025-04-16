@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentación Requerida para Reclamación</title>
+  <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #003366; padding: 15px; text-align: center; }
+        .header img { max-height: 50px; }
+        .content { padding: 20px; background-color: #f9f9f9; }
+        .footer { font-size: 12px; text-align: center; margin-top: 20px; color: #666; }
+        h1, h2 { color: #003366; }
+        .request-box { background-color: #fff; padding: 15px; margin: 15px 0; border-left: 4px solid #ff9900; }
+        .docs-box { background-color: #fff; padding: 15px; margin: 15px 0; }
+        .doc-item { margin-bottom: 12px; }
+        .deadline { color: #ff3333; font-weight: bold; }
+        .btn { display: inline-block; padding: 10px 20px; background-color: #003366; color: white; text-decoration: none; border-radius: 4px; }
+        .upload-btn { background-color: #4CAF50; }
+    </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <img src="https://ejemplo.com/logo.png" alt="InsureTech Logo">
+  </div>
+  <div class="content">
+    <h1>Documentación requerida para su reclamación</h1>
+    <p>Estimado/a <strong>${customerName}</strong>,</p>
+    <p>Para continuar con el procesamiento de su reclamación <strong>${claimNumber}</strong>, necesitamos que nos proporcione la siguiente documentación adicional.</p>
+
+    <div class="request-box">
+      <h2>Información de la solicitud:</h2>
+      <p><strong>Fecha de solicitud:</strong> ${requestDate}</p>
+      <p><strong>Solicitado por:</strong> ${requestedBy}</p>
+      <p><strong>Plazo máximo de entrega:</strong> <span class="deadline">${deadlineDate}</span></p>
+      <p><strong>Referencia:</strong> ${requestReference}</p>
+    </div>
+
+    <div class="docs-box">
+      <h2>Documentos requeridos:</h2>
+
+      ${documentsList}
+
+      <p>Por favor, asegúrese de que todos los documentos sean legibles y estén en formato PDF, JPG o PNG.</p>
+    </div>
+
+    <p><strong>Importante:</strong> La falta de presentación de la documentación solicitada dentro del plazo indicado podría retrasar el procesamiento de su reclamación o, en algunos casos, resultar en una decisión basada únicamente en la información disponible.</p>
+
+    <p>Puede subir esta documentación a través de nuestra plataforma:</p>
+    <p style="text-align: center;">
+      <a href="https://insurtech.ejemplo.com/reclamaciones/${claimId}/subir-documentos" class="btn upload-btn">Subir documentos</a>
+    </p>
+
+    <p>Alternativamente, puede responder a este correo adjuntando los documentos solicitados.</p>
+
+    <p>Si tiene alguna dificultad para proporcionar alguno de los documentos mencionados o necesita una extensión del plazo, por favor póngase en contacto con nosotros lo antes posible.</p>
+  </div>
+  <div class="footer">
+    <p>Este mensaje es confidencial y está dirigido únicamente a ${customerName}.</p>
+    <p>© ${currentYear} InsureTech. Todos los derechos reservados.</p>
+    <p>C/ Ejemplo, 123 - 28000 Madrid</p>
+  </div>
+</div>
+</body>
+</html>
