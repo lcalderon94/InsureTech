@@ -3,6 +3,7 @@ package com.insurtech.notification.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.thymeleaf.spring6.SpringTemplateEngine;
@@ -59,13 +60,16 @@ public class EmailConfig {
         templateResolver.setSuffix(".html");
         templateResolver.setTemplateMode("HTML");
         templateResolver.setCharacterEncoding("UTF-8");
+        templateResolver.setOrder(1); // Establecer orden de prioridad
+        templateResolver.setCheckExistence(true); // Verificar si las plantillas existen
         return templateResolver;
     }
 
     @Bean
-    public SpringTemplateEngine thymeleafTemplateEngine(ITemplateResolver templateResolver) {
+    @Primary // Marcar como bean primario para resolver la ambigüedad
+    public SpringTemplateEngine thymeleafTemplateEngine() {
         SpringTemplateEngine templateEngine = new SpringTemplateEngine();
-        templateEngine.setTemplateResolver(templateResolver);
+        templateEngine.setTemplateResolver(thymeleafTemplateResolver());
         return templateEngine;
     }
 }

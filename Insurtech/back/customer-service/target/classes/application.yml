@@ -1,11 +1,13 @@
 spring:
   application:
     name: customer-service
+
   datasource:
     url: jdbc:oracle:thin:@localhost:1521/xepdb1
     username: CUSTOMER_SCHEMA
     password: ayabrea
     driver-class-name: oracle.jdbc.OracleDriver
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -15,28 +17,35 @@ spring:
         format_sql: true
     show-sql: true
     open-in-view: false
+
   security:
     oauth2:
       resourceserver:
         jwt:
-          secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
+          jwk-set-uri: http://localhost:9000/.well-known/jwks.json
+          secret: claveSuperSeguraParaFirmarTokensJWT123456789012345678901234567890  # Añadida clave secreta
+
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
       group-id: customer-service-group
       auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
   config:
     import: "configserver:http://localhost:8888"
-
-
-app:
-  events:
-    enabled: false
 
 server:
   port: 8081
   servlet:
     context-path: /
+
+# Habilitación de eventos
+app:
+  events:
+    enabled: true
 
 async:
   core-pool-size: 5
@@ -64,3 +73,4 @@ logging:
     com.insurtech.customer: DEBUG
     org.springframework.security: INFO
     org.springframework.web: INFO
+    org.springframework.kafka: INFO
