@@ -35,6 +35,15 @@ services:
     depends_on:
       - kafka
 
+  # Servicio Redis
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"  # Expone el puerto estándar de Redis
+    volumes:
+      - redis-data:/data  # Para persistencia de datos
+    restart: unless-stopped
+
   # Servicio para crear los tópicos automáticamente
   kafka-topics-setup:
     image: confluentinc/cp-kafka:latest
@@ -57,6 +66,9 @@ services:
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.created
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.updated
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.status.changed
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.rejected
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.approved
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.document.required
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.item.added
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic claim.payment.requested
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic payment.created
@@ -66,6 +78,8 @@ services:
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic payment.transaction.started
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic payment.transaction.completed
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic payment.transaction.failed
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic payment.reminder
+        kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic customer.security.alert
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic payment-events
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic refund-events
         kafka-topics --create --if-not-exists --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 --topic payment.notifications
@@ -75,3 +89,6 @@ services:
     environment:
       KAFKA_BROKER_ID: ignored
       KAFKA_ZOOKEEPER_CONNECT: ignored
+
+volumes:
+  redis-data:  # Volumen para persistir datos de Redis
