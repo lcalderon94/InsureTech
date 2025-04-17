@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.io.Serializable;  // Añadir esta importación
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -18,7 +19,9 @@ import java.util.UUID;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class NotificationTemplate {
+public class NotificationTemplate implements Serializable {  // Implementar la interfaz
+
+    private static final long serialVersionUID = 1L;  // Añadir este campo
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

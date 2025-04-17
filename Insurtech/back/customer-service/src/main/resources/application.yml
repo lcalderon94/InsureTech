@@ -23,7 +23,7 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://localhost:9000/.well-known/jwks.json
-          secret: claveSuperSeguraParaFirmarTokensJWT123456789012345678901234567890  # Añadida clave secreta
+          secret: ${jwt.secret:rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3}
 
   kafka:
     bootstrap-servers: localhost:9092
@@ -51,6 +51,12 @@ async:
   core-pool-size: 5
   max-pool-size: 10
   queue-capacity: 25
+
+# Configuración JWT
+jwt:
+  secret: rEfdWEFerf34r34FERfe3f34fERfefewfWEFWEFwefWEFWEFwef34F34f3
+  issuer: insurtech-auth
+  expiration: 86400000
 
 management:
   endpoints:
