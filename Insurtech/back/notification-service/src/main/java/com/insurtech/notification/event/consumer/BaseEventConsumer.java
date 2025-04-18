@@ -1,6 +1,5 @@
 package com.insurtech.notification.event.consumer;
 
-import com.insurtech.notification.event.model.BaseEvent;
 import com.insurtech.notification.exception.NotificationException;
 import com.insurtech.notification.model.dto.NotificationRequestDto;
 import com.insurtech.notification.model.enums.NotificationPriority;
@@ -15,7 +14,7 @@ import org.springframework.kafka.support.Acknowledgment;
 import java.util.Map;
 
 @Slf4j
-public abstract class BaseEventConsumer<T extends BaseEvent> {
+public abstract class BaseEventConsumer {
 
     @Autowired
     protected NotificationService notificationService;
@@ -26,10 +25,12 @@ public abstract class BaseEventConsumer<T extends BaseEvent> {
     /**
      * Procesa un evento recibido desde Kafka
      */
-    protected void processEvent(T event, Acknowledgment acknowledgment) {
+    protected void processEvent(Map<String, Object> event, Acknowledgment acknowledgment) {
         try {
             String eventType = determineEventType(event);
-            log.info("Procesando evento: {} con ID: {}", eventType, event.getEventId());
+            String eventId = event.get("eventId") != null ? event.get("eventId").toString() : "unknown";
+
+            log.info("Procesando evento: {} con ID: {}", eventType, eventId);
 
             // Extraer variables específicas del evento
             Map<String, Object> variables = extractVariables(event);
@@ -39,12 +40,13 @@ public abstract class BaseEventConsumer<T extends BaseEvent> {
             String phone = extractPhone(event);
 
             // Enviar notificaciones por todos los canales disponibles
-            processNotificationsForAllChannels(eventType, email, phone, variables, event.getEventId().toString());
+            processNotificationsForAllChannels(eventType, email, phone, variables, eventId);
 
             acknowledgment.acknowledge();
-            log.info("Evento procesado correctamente: {}", event.getEventId());
+            log.info("Evento procesado correctamente: {}", eventId);
         } catch (Exception e) {
-            log.error("Error procesando evento {}: {}", event.getEventId(), e.getMessage(), e);
+            String eventId = event.get("eventId") != null ? event.get("eventId").toString() : "unknown";
+            log.error("Error procesando evento {}: {}", eventId, e.getMessage(), e);
             // Decisión según política de errores (acknowledge o no)
             acknowledgment.acknowledge(); // Por defecto, reconocemos para evitar mensajes "poison pill"
         }
@@ -177,20 +179,20 @@ public abstract class BaseEventConsumer<T extends BaseEvent> {
     /**
      * Determina el tipo de evento
      */
-    protected abstract String determineEventType(T event);
+    protected abstract String determineEventType(Map<String, Object> event);
 
     /**
      * Extrae variables específicas del tipo de evento
      */
-    protected abstract Map<String, Object> extractVariables(T event);
+    protected abstract Map<String, Object> extractVariables(Map<String, Object> event);
 
     /**
      * Extrae email del evento
      */
-    protected abstract String extractEmail(T event);
+    protected abstract String extractEmail(Map<String, Object> event);
 
     /**
      * Extrae teléfono del evento
      */
-    protected abstract String extractPhone(T event);
+    protected abstract String extractPhone(Map<String, Object> event);
 }

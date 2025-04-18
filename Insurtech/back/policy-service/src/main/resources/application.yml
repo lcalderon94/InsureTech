@@ -31,7 +31,7 @@ spring:
 
 # Propiedad para deshabilitar Kafka (usar con @ConditionalOnProperty en KafkaConfig)
 kafka:
-  enabled: false  # Cambiar a true cuando quieras activar Kafka
+  enabled: true  # Cambiar a true cuando quieras activar Kafka
 
 server:
   port: 8082

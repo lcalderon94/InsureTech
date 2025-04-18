@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +18,10 @@ import java.util.UUID;
 public interface NotificationTemplateRepository extends JpaRepository<NotificationTemplate, UUID> {
 
     Optional<NotificationTemplate> findByCode(String code);
+
+    @Query(value = "SELECT t FROM NotificationTemplate t WHERE t.code = :code")
+    @Transactional(readOnly = true)
+    NotificationTemplate findByCodeDirect(@Param("code") String code);
 
     List<NotificationTemplate> findByType(NotificationType type);
 

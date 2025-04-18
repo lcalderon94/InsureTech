@@ -1,9 +1,11 @@
 package com.insurtech.notification.event.consumer;
 
-import com.insurtech.notification.event.model.ClaimEvent;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -11,152 +13,179 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class ClaimEventConsumer extends BaseEventConsumer<ClaimEvent> {
+public class ClaimEventConsumer extends BaseEventConsumer {
 
-    @KafkaListener(topics = "claim.created", containerFactory = "claimKafkaListenerContainerFactory")
-    public void consumeClaimCreated(ClaimEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de reclamación creada: {}", event.getClaimNumber());
+    @KafkaListener(topics = "claim.created", containerFactory = "kafkaListenerContainerFactory")
+    public void consumeClaimCreated(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación creada: {}", event.get("claimNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "claim.updated", containerFactory = "claimKafkaListenerContainerFactory")
-    public void consumeClaimUpdated(ClaimEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de reclamación actualizada: {}", event.getClaimNumber());
+    @KafkaListener(topics = "claim.updated", containerFactory = "kafkaListenerContainerFactory")
+    public void consumeClaimUpdated(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación actualizada: {}", event.get("claimNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "claim.status.changed", containerFactory = "claimKafkaListenerContainerFactory")
-    public void consumeClaimStatusChanged(ClaimEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de cambio de estado de reclamación: {}", event.getClaimNumber());
+    @KafkaListener(topics = "claim.status.changed", containerFactory = "kafkaListenerContainerFactory")
+    public void consumeClaimStatusChanged(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cambio de estado de reclamación: {}", event.get("claimNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "claim.approved", containerFactory = "claimKafkaListenerContainerFactory")
-    public void consumeClaimApproved(ClaimEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de reclamación aprobada: {}", event.getClaimNumber());
+    @KafkaListener(topics = "claim.approved", containerFactory = "kafkaListenerContainerFactory")
+    public void consumeClaimApproved(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación aprobada: {}", event.get("claimNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "claim.rejected", containerFactory = "claimKafkaListenerContainerFactory")
-    public void consumeClaimRejected(ClaimEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de reclamación rechazada: {}", event.getClaimNumber());
+    @KafkaListener(topics = "claim.rejected", containerFactory = "kafkaListenerContainerFactory")
+    public void consumeClaimRejected(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de reclamación rechazada: {}", event.get("claimNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "claim.document.required", containerFactory = "claimKafkaListenerContainerFactory")
-    public void consumeClaimDocumentRequired(ClaimEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de documentación requerida para reclamación: {}", event.getClaimNumber());
+    @KafkaListener(topics = "claim.document.required", containerFactory = "kafkaListenerContainerFactory")
+    public void consumeClaimDocumentRequired(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de documentación requerida para reclamación: {}", event.get("claimNumber"));
         processEvent(event, acknowledgment);
     }
 
     @Override
-    protected String determineEventType(ClaimEvent event) {
-        if (event.getClaimStatus() != null) {
-            if ("APPROVED".equals(event.getClaimStatus())) {
+    protected String determineEventType(Map<String, Object> event) {
+        String claimStatus = getString(event, "claimStatus");
+        if (claimStatus != null) {
+            if ("APPROVED".equals(claimStatus)) {
                 return "claim.approved";
-            } else if ("REJECTED".equals(event.getClaimStatus())) {
+            } else if ("REJECTED".equals(claimStatus)) {
                 return "claim.rejected";
-            } else if (event.getPreviousStatus() != null && !event.getPreviousStatus().equals(event.getClaimStatus())) {
+            } else if (event.get("previousStatus") != null &&
+                    !event.get("previousStatus").equals(claimStatus)) {
                 return "claim.status.changed";
             }
         }
 
-        if (event.getEventType() != null) {
-            return event.getEventType();
+        if (event.get("eventType") != null) {
+            return event.get("eventType").toString();
         }
 
         // Determinar basado en la presencia de campos específicos
-        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("documentsRequired")) {
-            return "claim.document.required";
+        if (event.get("additionalDetails") != null && event.get("additionalDetails") instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> additionalDetails = (Map<String, Object>) event.get("additionalDetails");
+            if (additionalDetails.containsKey("documentsRequired")) {
+                return "claim.document.required";
+            }
         }
 
         return "claim.updated"; // Valor por defecto
     }
 
     @Override
-    protected Map<String, Object> extractVariables(ClaimEvent event) {
+    protected Map<String, Object> extractVariables(Map<String, Object> event) {
         Map<String, Object> variables = new HashMap<>();
 
         // Datos básicos
-        variables.put("claimNumber", event.getClaimNumber());
-        variables.put("claimId", event.getClaimId().toString());
-        variables.put("policyNumber", event.getPolicyNumber());
-        variables.put("customerName", event.getCustomerName());
-        variables.put("claimType", event.getClaimType());
+        variables.put("claimNumber", getString(event, "claimNumber"));
+
+        if (event.get("claimId") != null) {
+            variables.put("claimId", event.get("claimId").toString());
+        }
+
+        variables.put("policyNumber", getString(event, "policyNumber"));
+        variables.put("customerName", getString(event, "customerName"));
+        variables.put("claimType", getString(event, "claimType"));
 
         // Referencia
-        variables.put("claimReference", event.getClaimNumber()); // O una referencia específica si existe
+        variables.put("claimReference", getString(event, "claimNumber")); // O una referencia específica si existe
 
         // Estado
-        if (event.getClaimStatus() != null) {
-            variables.put("newStatus", formatStatus(event.getClaimStatus()));
-            if (event.getPreviousStatus() != null) {
-                variables.put("previousStatus", formatStatus(event.getPreviousStatus()));
+        String claimStatus = getString(event, "claimStatus");
+        if (claimStatus != null) {
+            variables.put("newStatus", formatStatus(claimStatus));
+
+            String previousStatus = getString(event, "previousStatus");
+            if (previousStatus != null) {
+                variables.put("previousStatus", formatStatus(previousStatus));
             }
         }
 
         // Formatear fechas
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        if (event.getIncidentDate() != null) {
-            variables.put("incidentDate", event.getIncidentDate().format(dateFormatter));
+
+        Object incidentDateObj = event.get("incidentDate");
+        if (incidentDateObj != null) {
+            LocalDate incidentDate = parseDate(incidentDateObj);
+            variables.put("incidentDate", incidentDate.format(dateFormatter));
         }
-        if (event.getReportDate() != null) {
-            variables.put("reportDate", event.getReportDate().format(dateFormatter));
+
+        Object reportDateObj = event.get("reportDate");
+        if (reportDateObj != null) {
+            LocalDate reportDate = parseDate(reportDateObj);
+            variables.put("reportDate", reportDate.format(dateFormatter));
         }
 
         // Importes
-        if (event.getClaimAmount() != null) {
-            variables.put("claimAmount", formatCurrency(event.getClaimAmount()));
+        Object claimAmountObj = event.get("claimAmount");
+        if (claimAmountObj != null) {
+            variables.put("claimAmount", formatCurrency(claimAmountObj));
         }
-        if (event.getApprovedAmount() != null) {
-            variables.put("approvedAmount", formatCurrency(event.getApprovedAmount()));
+
+        Object approvedAmountObj = event.get("approvedAmount");
+        if (approvedAmountObj != null) {
+            variables.put("approvedAmount", formatCurrency(approvedAmountObj));
         }
 
         // Datos específicos para aprobación
-        if ("APPROVED".equals(event.getClaimStatus())) {
+        if ("APPROVED".equals(claimStatus)) {
             variables.put("paymentDays", "5"); // O calcularlo dinámicamente
-            variables.put("approvalDate", java.time.LocalDate.now().format(dateFormatter));
+            variables.put("approvalDate", LocalDate.now().format(dateFormatter));
         }
 
         // Datos específicos para rechazo
-        if ("REJECTED".equals(event.getClaimStatus())) {
+        if ("REJECTED".equals(claimStatus)) {
             variables.put("rejectionReasonShort", getShortRejectionReason(event));
         }
 
         // Datos para documento requerido
-        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("documentsRequired")) {
-            // Calcular una fecha límite (ejemplo: 15 días)
-            variables.put("deadlineDate", java.time.LocalDate.now().plusDays(15).format(dateFormatter));
+        if (event.get("additionalDetails") != null && event.get("additionalDetails") instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> additionalDetails = (Map<String, Object>) event.get("additionalDetails");
+            if (additionalDetails.containsKey("documentsRequired")) {
+                // Calcular una fecha límite (ejemplo: 15 días)
+                variables.put("deadlineDate", LocalDate.now().plusDays(15).format(dateFormatter));
+            }
         }
 
         // Descripción
-        if (event.getDescription() != null) {
-            variables.put("description", event.getDescription());
-        }
+        variables.put("description", getString(event, "description"));
 
         // Notas
-        if (event.getStatusNotes() != null) {
-            variables.put("statusNotes", event.getStatusNotes());
-        }
+        variables.put("statusNotes", getString(event, "statusNotes"));
 
         // Agregar detalles adicionales
-        if (event.getAdditionalDetails() != null) {
-            variables.putAll(event.getAdditionalDetails());
+        if (event.get("additionalDetails") != null && event.get("additionalDetails") instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> additionalDetails = (Map<String, Object>) event.get("additionalDetails");
+            variables.putAll(additionalDetails);
         }
 
         return variables;
     }
 
     @Override
-    protected String extractEmail(ClaimEvent event) {
-        if (event.getCustomerEmail() != null && !event.getCustomerEmail().trim().isEmpty()) {
-            return event.getCustomerEmail();
+    protected String extractEmail(Map<String, Object> event) {
+        String email = getString(event, "customerEmail");
+        if (email != null && !email.trim().isEmpty()) {
+            return email;
         }
 
-        if (event.getAdditionalDetails() != null) {
-            Object email = event.getAdditionalDetails().get("customerEmail");
-            if (email != null && !email.toString().trim().isEmpty()) {
-                return email.toString();
+        if (event.get("additionalDetails") != null && event.get("additionalDetails") instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> additionalDetails = (Map<String, Object>) event.get("additionalDetails");
+            Object emailObj = additionalDetails.get("customerEmail");
+            if (emailObj != null && !emailObj.toString().trim().isEmpty()) {
+                return emailObj.toString();
             }
         }
 
@@ -164,15 +193,18 @@ public class ClaimEventConsumer extends BaseEventConsumer<ClaimEvent> {
     }
 
     @Override
-    protected String extractPhone(ClaimEvent event) {
-        if (event.getCustomerPhone() != null && !event.getCustomerPhone().trim().isEmpty()) {
-            return event.getCustomerPhone();
+    protected String extractPhone(Map<String, Object> event) {
+        String phone = getString(event, "customerPhone");
+        if (phone != null && !phone.trim().isEmpty()) {
+            return phone;
         }
 
-        if (event.getAdditionalDetails() != null) {
-            Object phone = event.getAdditionalDetails().get("customerPhone");
-            if (phone != null && !phone.toString().trim().isEmpty()) {
-                return phone.toString();
+        if (event.get("additionalDetails") != null && event.get("additionalDetails") instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> additionalDetails = (Map<String, Object>) event.get("additionalDetails");
+            Object phoneObj = additionalDetails.get("customerPhone");
+            if (phoneObj != null && !phoneObj.toString().trim().isEmpty()) {
+                return phoneObj.toString();
             }
         }
 
@@ -180,6 +212,22 @@ public class ClaimEventConsumer extends BaseEventConsumer<ClaimEvent> {
     }
 
     // Métodos auxiliares
+
+    private String getString(Map<String, Object> map, String key) {
+        return map.get(key) != null ? map.get(key).toString() : null;
+    }
+
+    private LocalDate parseDate(Object dateObj) {
+        if (dateObj instanceof LocalDate) {
+            return (LocalDate) dateObj;
+        } else if (dateObj instanceof String) {
+            return LocalDate.parse((String) dateObj);
+        } else if (dateObj instanceof Long) {
+            return LocalDate.ofEpochDay((Long) dateObj / (24 * 60 * 60 * 1000));
+        } else {
+            return LocalDate.now(); // Valor por defecto
+        }
+    }
 
     private String formatStatus(String status) {
         if (status == null) {
@@ -195,25 +243,44 @@ public class ClaimEventConsumer extends BaseEventConsumer<ClaimEvent> {
                 );
     }
 
-    private String formatCurrency(java.math.BigDecimal amount) {
+    private String formatCurrency(Object amount) {
         if (amount == null) {
             return "0.00";
         }
-        return amount.setScale(2, java.math.RoundingMode.HALF_UP).toString();
-    }
 
-    private String getShortRejectionReason(ClaimEvent event) {
-        if (event.getStatusNotes() != null && !event.getStatusNotes().isEmpty()) {
-            // Devolver versión resumida de las notas (primeros 50 caracteres o primera frase)
-            String notes = event.getStatusNotes();
-            if (notes.length() > 50) {
-                return notes.substring(0, 47) + "...";
+        BigDecimal numericAmount;
+        if (amount instanceof BigDecimal) {
+            numericAmount = (BigDecimal) amount;
+        } else if (amount instanceof Number) {
+            numericAmount = new BigDecimal(amount.toString());
+        } else {
+            try {
+                numericAmount = new BigDecimal(amount.toString());
+            } catch (Exception e) {
+                log.warn("No se pudo convertir el monto a BigDecimal: {}", amount);
+                return "0.00";
             }
-            return notes;
         }
 
-        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("rejectionReason")) {
-            return event.getAdditionalDetails().get("rejectionReason").toString();
+        return numericAmount.setScale(2, RoundingMode.HALF_UP).toString();
+    }
+
+    private String getShortRejectionReason(Map<String, Object> event) {
+        String statusNotes = getString(event, "statusNotes");
+        if (statusNotes != null && !statusNotes.isEmpty()) {
+            // Devolver versión resumida de las notas (primeros 50 caracteres o primera frase)
+            if (statusNotes.length() > 50) {
+                return statusNotes.substring(0, 47) + "...";
+            }
+            return statusNotes;
+        }
+
+        if (event.get("additionalDetails") != null && event.get("additionalDetails") instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> additionalDetails = (Map<String, Object>) event.get("additionalDetails");
+            if (additionalDetails.containsKey("rejectionReason")) {
+                return additionalDetails.get("rejectionReason").toString();
+            }
         }
 
         return "Fuera de cobertura"; // Razón genérica

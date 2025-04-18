@@ -73,7 +73,7 @@ public class PolicyServiceImpl implements PolicyService {
 
         policyVersioningService.createPolicyVersion(policy.getId(), "Creación inicial de póliza");
 
-        //eventProducer.publishPolicyCreated(policy);
+        eventProducer.publishPolicyCreated(policy);
 
         log.info("Póliza creada con éxito. ID: {}, Número: {}", policy.getId(), policy.getPolicyNumber());
 

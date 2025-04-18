@@ -1,9 +1,9 @@
 package com.insurtech.notification.event.consumer;
 
-import com.insurtech.notification.event.model.PolicyEvent;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
+import java.time.LocalDate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.support.Acknowledgment;
@@ -11,53 +11,61 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
+public class PolicyEventConsumer extends BaseEventConsumer {
 
     @KafkaListener(topics = "policy.created", containerFactory = "policyKafkaListenerContainerFactory")
-    public void consumePolicyCreated(PolicyEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de póliza creada: {}", event.getPolicyNumber());
+    public void consumePolicyCreated(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de póliza creada: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
     @KafkaListener(topics = "policy.updated", containerFactory = "policyKafkaListenerContainerFactory")
-    public void consumePolicyUpdated(PolicyEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de póliza actualizada: {}", event.getPolicyNumber());
+    public void consumePolicyUpdated(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de póliza actualizada: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
     @KafkaListener(topics = "policy.status.changed", containerFactory = "policyKafkaListenerContainerFactory")
-    public void consumePolicyStatusChanged(PolicyEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de cambio de estado de póliza: {}", event.getPolicyNumber());
+    public void consumePolicyStatusChanged(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cambio de estado de póliza: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
     @KafkaListener(topics = "policy.cancelled", containerFactory = "policyKafkaListenerContainerFactory")
-    public void consumePolicyCancelled(PolicyEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de cancelación de póliza: {}", event.getPolicyNumber());
+    public void consumePolicyCancelled(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de cancelación de póliza: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
     @KafkaListener(topics = "policy.renewed", containerFactory = "policyKafkaListenerContainerFactory")
-    public void consumePolicyRenewed(PolicyEvent event, Acknowledgment acknowledgment) {
-        log.info("Recibido evento de renovación de póliza: {}", event.getPolicyNumber());
+    public void consumePolicyRenewed(Map<String, Object> event, Acknowledgment acknowledgment) {
+        log.info("Recibido evento de renovación de póliza: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
     @Override
-    protected String determineEventType(PolicyEvent event) {
+    protected String determineEventType(Map<String, Object> event) {
         // Determinar el tipo de evento basado en el tópico Kafka o en los datos del evento
-        if (event.getActionType() != null) {
-            return "policy." + event.getActionType().toLowerCase();
+        if (event.get("actionType") != null) {
+            return "policy." + event.get("actionType").toString().toLowerCase();
         }
 
         // Usar el eventType directamente del evento si está disponible
-        if (event.getEventType() != null) {
-            return event.getEventType();
+        if (event.get("eventType") != null) {
+            return event.get("eventType").toString();
+        }
+
+        // Convertir formatos POLICY_CREATED a policy.created
+        if (event.get("eventType") != null) {
+            String rawType = event.get("eventType").toString();
+            if (rawType.contains("_")) {
+                return "policy." + rawType.toLowerCase().replace("_", ".");
+            }
         }
 
         // Valor por defecto basado en la presencia de ciertos campos
-        if (event.getPolicyStatus() != null && event.getAdditionalDetails() != null
-                && event.getAdditionalDetails().containsKey("previousStatus")) {
+        if (event.get("policyStatus") != null && event.get("additionalDetails") != null
+                && ((Map<String, Object>)event.get("additionalDetails")).containsKey("previousStatus")) {
             return "policy.status.changed";
         }
 
@@ -65,78 +73,59 @@ public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
     }
 
     @Override
-    protected Map<String, Object> extractVariables(PolicyEvent event) {
-        Map<String, Object> variables = new HashMap<>();
-
-        // Datos básicos de póliza
-        variables.put("policyNumber", event.getPolicyNumber());
-        variables.put("policyType", event.getPolicyType());
-        variables.put("customerName", event.getCustomerName());
+    protected Map<String, Object> extractVariables(Map<String, Object> event) {
+        Map<String, Object> variables = new HashMap<>(event);
 
         // Formatear fechas
         DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        if (event.getEffectiveDate() != null) {
-            variables.put("effectiveDate", event.getEffectiveDate().format(dateFormatter));
-        }
-        if (event.getExpirationDate() != null) {
-            variables.put("expirationDate", event.getExpirationDate().format(dateFormatter));
+        if (event.get("effectiveDate") != null) {
+            try {
+                LocalDate effectiveDate = parseDate(event.get("effectiveDate"));
+                variables.put("effectiveDate", effectiveDate.format(dateFormatter));
+            } catch (Exception e) {
+                log.warn("Error parseando effectiveDate: {}", e.getMessage());
+            }
         }
 
-        // Datos de renovación
-        if (event.getActionType() != null && event.getActionType().equals("RENEWED")) {
-            variables.put("newEffectiveDate", event.getEffectiveDate().format(dateFormatter));
-            variables.put("newExpirationDate", event.getExpirationDate().format(dateFormatter));
-            if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("newPremium")) {
-                variables.put("newPremium", event.getAdditionalDetails().get("newPremium"));
+        if (event.get("expirationDate") != null) {
+            try {
+                LocalDate expirationDate = parseDate(event.get("expirationDate"));
+                variables.put("expirationDate", expirationDate.format(dateFormatter));
+
+                // Para vencimiento próximo
+                long daysUntil = java.time.temporal.ChronoUnit.DAYS.between(
+                        LocalDate.now(), expirationDate);
+                variables.put("daysUntilExpiration", String.valueOf(daysUntil));
+            } catch (Exception e) {
+                log.warn("Error parseando expirationDate: {}", e.getMessage());
             }
         }
 
         // Datos de cambio de estado
-        if (event.getPolicyStatus() != null) {
-            variables.put("newStatus", event.getPolicyStatus());
-            if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("previousStatus")) {
-                variables.put("previousStatus", event.getAdditionalDetails().get("previousStatus"));
-            }
-            variables.put("statusChangeImpact", getStatusChangeImpact(event.getPolicyStatus()));
+        if (event.get("policyStatus") != null) {
+            variables.put("newStatus", event.get("policyStatus"));
+            variables.put("statusChangeImpact", getStatusChangeImpact(event.get("policyStatus").toString()));
         }
 
         // Datos de cancelación
-        if (event.getActionType() != null && event.getActionType().equals("CANCELLED")) {
-            variables.put("cancellationDate", getCurrentDate(dateFormatter));
-            variables.put("coverageEndDate", event.getExpirationDate().format(dateFormatter));
+        if (event.get("actionType") != null && "CANCELLED".equals(event.get("actionType"))) {
+            variables.put("cancellationDate", LocalDate.now().format(dateFormatter));
             variables.put("refundInfoShort", getRefundInfo(event));
-        }
-
-        // Para vencimiento próximo
-        if (event.getExpirationDate() != null) {
-            long daysUntil = java.time.temporal.ChronoUnit.DAYS.between(
-                    java.time.LocalDate.now(), event.getExpirationDate());
-            variables.put("daysUntilExpiration", String.valueOf(daysUntil));
-        }
-
-        // Prima
-        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("premium")) {
-            variables.put("premium", event.getAdditionalDetails().get("premium"));
-        }
-
-        // Incluir datos adicionales
-        if (event.getAdditionalDetails() != null) {
-            variables.putAll(event.getAdditionalDetails());
         }
 
         return variables;
     }
 
     @Override
-    protected String extractEmail(PolicyEvent event) {
-        if (event.getCustomerEmail() != null && !event.getCustomerEmail().trim().isEmpty()) {
-            return event.getCustomerEmail();
+    protected String extractEmail(Map<String, Object> event) {
+        if (event.get("customerEmail") != null && !event.get("customerEmail").toString().trim().isEmpty()) {
+            return event.get("customerEmail").toString();
         }
 
-        if (event.getAdditionalDetails() != null) {
-            Object email = event.getAdditionalDetails().get("customerEmail");
-            if (email != null && !email.toString().trim().isEmpty()) {
-                return email.toString();
+        if (event.get("additionalDetails") != null) {
+            Map<String, Object> details = (Map<String, Object>) event.get("additionalDetails");
+            if (details.get("customerEmail") != null && !details.get("customerEmail").toString().trim().isEmpty()) {
+                return details.get("customerEmail").toString();
             }
         }
 
@@ -144,15 +133,15 @@ public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
     }
 
     @Override
-    protected String extractPhone(PolicyEvent event) {
-        if (event.getCustomerPhone() != null && !event.getCustomerPhone().trim().isEmpty()) {
-            return event.getCustomerPhone();
+    protected String extractPhone(Map<String, Object> event) {
+        if (event.get("customerPhone") != null && !event.get("customerPhone").toString().trim().isEmpty()) {
+            return event.get("customerPhone").toString();
         }
 
-        if (event.getAdditionalDetails() != null) {
-            Object phone = event.getAdditionalDetails().get("customerPhone");
-            if (phone != null && !phone.toString().trim().isEmpty()) {
-                return phone.toString();
+        if (event.get("additionalDetails") != null) {
+            Map<String, Object> details = (Map<String, Object>) event.get("additionalDetails");
+            if (details.get("customerPhone") != null && !details.get("customerPhone").toString().trim().isEmpty()) {
+                return details.get("customerPhone").toString();
             }
         }
 
@@ -160,6 +149,17 @@ public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
     }
 
     // Métodos auxiliares
+    private LocalDate parseDate(Object dateObj) {
+        if (dateObj instanceof LocalDate) {
+            return (LocalDate) dateObj;
+        } else if (dateObj instanceof String) {
+            return LocalDate.parse((String) dateObj);
+        } else if (dateObj instanceof Long) {
+            return LocalDate.ofEpochDay((Long) dateObj / (24 * 60 * 60 * 1000));
+        } else {
+            return LocalDate.now(); // Valor por defecto
+        }
+    }
 
     private String getStatusChangeImpact(String newStatus) {
         switch (newStatus) {
@@ -171,14 +171,13 @@ public class PolicyEventConsumer extends BaseEventConsumer<PolicyEvent> {
         }
     }
 
-    private String getRefundInfo(PolicyEvent event) {
-        if (event.getAdditionalDetails() != null && event.getAdditionalDetails().containsKey("refundAmount")) {
-            return "Reembolso: " + event.getAdditionalDetails().get("refundAmount") + "€.";
+    private String getRefundInfo(Map<String, Object> event) {
+        if (event.get("additionalDetails") != null) {
+            Map<String, Object> details = (Map<String, Object>) event.get("additionalDetails");
+            if (details.get("refundAmount") != null) {
+                return "Reembolso: " + details.get("refundAmount") + "€.";
+            }
         }
         return "Consulte detalles de reembolso en su área personal.";
-    }
-
-    private String getCurrentDate(DateTimeFormatter formatter) {
-        return java.time.LocalDate.now().format(formatter);
     }
 }

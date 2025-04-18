@@ -25,7 +25,7 @@ import java.util.Base64;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    @Value("${spring.security.oauth2.resourceserver.jwt.secret}")
+    @Value("${security.oauth2.resourceserver.jwt.secret}")
     private String secret;
 
     @Bean

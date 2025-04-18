@@ -21,7 +21,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class NotificationTemplate implements Serializable {  // Implementar la interfaz
 
-    private static final long serialVersionUID = 1L;  // Añadir este campo
+    private static final long serialVersionUID = 1L;
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

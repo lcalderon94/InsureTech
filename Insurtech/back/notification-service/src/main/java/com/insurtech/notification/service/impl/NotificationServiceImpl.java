@@ -17,6 +17,7 @@ import com.insurtech.notification.model.enums.NotificationStatus;
 import com.insurtech.notification.repository.DeliveryAttemptRepository;
 import com.insurtech.notification.repository.NotificationBatchRepository;
 import com.insurtech.notification.repository.NotificationRepository;
+import com.insurtech.notification.repository.NotificationTemplateRepository;
 import com.insurtech.notification.service.interfaces.EmailService;
 import com.insurtech.notification.service.interfaces.NotificationService;
 import com.insurtech.notification.service.interfaces.SmsService;
@@ -45,6 +46,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final NotificationBatchRepository batchRepository;
     private final DeliveryAttemptRepository deliveryAttemptRepository;
+    private final NotificationTemplateRepository templateRepository;
     private final TemplateService templateService;
     private final EmailService emailService;
     private final SmsService smsService;
@@ -358,30 +360,56 @@ public class NotificationServiceImpl implements NotificationService {
 
         // Si tiene código de plantilla, cargar plantilla
         if (requestDto.getTemplateCode() != null && !requestDto.getTemplateCode().isBlank()) {
-            Optional<NotificationTemplate> templateOpt =
-                    templateService.findTemplateByCode(requestDto.getTemplateCode());
-
-            if (templateOpt.isEmpty()) {
-                throw new TemplateNotFoundException("Plantilla no encontrada: " + requestDto.getTemplateCode());
-            }
-
-            NotificationTemplate template = templateOpt.get();
-            notification.setTemplate(template);
-            notification.setSubject(template.getSubject());
-
-            // Procesar plantilla con variables
-            String processedContent = templateService.processTemplate(
-                    template.getContent(), requestDto.getTemplateVariables());
-            notification.setContent(processedContent);
-
-            // Guardar variables como JSON para referencia
             try {
-                if (requestDto.getTemplateVariables() != null) {
-                    notification.setDataContext(
-                            objectMapper.writeValueAsString(requestDto.getTemplateVariables()));
+                Optional<NotificationTemplate> templateOpt =
+                        templateService.findTemplateByCode(requestDto.getTemplateCode());
+
+                if (templateOpt.isEmpty()) {
+                    throw new TemplateNotFoundException("Plantilla no encontrada: " + requestDto.getTemplateCode());
                 }
-            } catch (JsonProcessingException e) {
-                log.warn("Error serializando variables de plantilla: {}", e.getMessage());
+
+                // Extraer los datos que necesitamos sin mantener referencia al objeto template
+                String subject = templateOpt.get().getSubject();
+                String templateContent = templateOpt.get().getContent();
+                UUID templateId = templateOpt.get().getId();
+
+                // Configurar la notificación con estos datos
+                notification.setSubject(subject);
+
+                // Procesar contenido con variables
+                String processedContent = templateService.processTemplate(
+                        templateContent, requestDto.getTemplateVariables());
+                notification.setContent(processedContent);
+
+                // Obtener una instancia "fresca" del template usando el ID
+                // Esto evita el problema de classloading
+                try {
+                    // Si tienes acceso al repositorio
+                    NotificationTemplate freshTemplate = templateRepository.getReferenceById(templateId);
+                    notification.setTemplate(freshTemplate);
+                } catch (Exception e) {
+                    log.warn("No se pudo obtener referencia fresca del template: {}", e.getMessage());
+                    // La aplicación puede continuar sin la referencia al template
+                    // ya que ya tenemos el subject y content procesados
+                }
+
+                // Guardar variables como JSON para referencia
+                try {
+                    if (requestDto.getTemplateVariables() != null) {
+                        notification.setDataContext(
+                                objectMapper.writeValueAsString(requestDto.getTemplateVariables()));
+                    }
+                } catch (JsonProcessingException e) {
+                    log.warn("Error serializando variables de plantilla: {}", e.getMessage());
+                }
+            } catch (ClassCastException e) {
+                log.warn("Error de classloader detectado: {}", e.getMessage());
+
+                // Usar content y subject directos como fallback
+                notification.setSubject(requestDto.getSubject() != null ?
+                        requestDto.getSubject() : "Notificación");
+                notification.setContent(requestDto.getContent() != null ?
+                        requestDto.getContent() : "Contenido de notificación");
             }
         } else {
             // Sin plantilla, usar contenido directo
@@ -393,10 +421,14 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private NotificationResponseDto mapToResponseDto(Notification notification) {
-        List<DeliveryAttemptDto> attempts =
-                notification.getDeliveryAttempts().stream()
-                        .map(this::mapDeliveryAttemptToDto)
-                        .collect(Collectors.toList());
+        List<DeliveryAttemptDto> attempts = new ArrayList<>();
+
+        // Verificar que deliveryAttempts no sea null antes de hacer stream
+        if (notification.getDeliveryAttempts() != null) {
+            attempts = notification.getDeliveryAttempts().stream()
+                    .map(this::mapDeliveryAttemptToDto)
+                    .collect(Collectors.toList());
+        }
 
         List<String> ccList = null;
         if (notification.getCcRecipients() != null && !notification.getCcRecipients().isBlank()) {
