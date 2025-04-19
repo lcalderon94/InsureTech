@@ -71,9 +71,13 @@ public class PolicyServiceImpl implements PolicyService {
 
         policy = policyRepository.save(policy);
 
+        // Actualizar el ID en el DTO después de guardar
+        policyDto.setId(policy.getId());
+
         policyVersioningService.createPolicyVersion(policy.getId(), "Creación inicial de póliza");
 
-        eventProducer.publishPolicyCreated(policy);
+        // Usar el DTO para el evento
+        eventProducer.publishPolicyCreated(policyDto);
 
         log.info("Póliza creada con éxito. ID: {}, Número: {}", policy.getId(), policy.getPolicyNumber());
 
@@ -156,11 +160,11 @@ public class PolicyServiceImpl implements PolicyService {
         policyVersioningService.createPolicyVersion(policy.getId(), "Actualización de póliza");
 
         // Publicar evento de póliza actualizada
-        eventProducer.publishPolicyUpdated(policy);
+        eventProducer.publishPolicyUpdated(policyDto);
 
         // Publicar evento de cambio de estado si aplica
         if (oldStatus != policy.getStatus()) {
-            eventProducer.publishPolicyStatusChanged(policy, oldStatus);
+            eventProducer.publishPolicyStatusChanged(policyDto, oldStatus);
         }
 
         log.info("Póliza actualizada con éxito. ID: {}", id);
@@ -223,12 +227,28 @@ public class PolicyServiceImpl implements PolicyService {
         // Crear una nueva versión
         policyVersioningService.createPolicyVersion(policy.getId(), "Cambio de estado: " + oldStatus + " -> " + status);
 
-        // Publicar evento de cambio de estado
-        eventProducer.publishPolicyStatusChanged(policy, oldStatus);
+        // Crear un PolicyDto para el evento
+        PolicyDto policyDto = mapper.toDto(policy);
+
+        // Obtener datos completos del cliente
+        try {
+            Map<String, Object> customerData = customerClient.getCustomerById(policy.getCustomerId());
+
+            // Agregar los datos del cliente al DTO
+            policyDto.setCustomerEmail((String) customerData.getOrDefault("email", null));
+            policyDto.setCustomerNumber((String) customerData.getOrDefault("customerNumber", null));
+            policyDto.setIdentificationNumber((String) customerData.getOrDefault("identificationNumber", null));
+            policyDto.setIdentificationType((String) customerData.getOrDefault("identificationType", null));
+        } catch (Exception e) {
+            log.error("Error al obtener datos del cliente para el evento", e);
+        }
+
+        // Publicar evento de cambio de estado con el DTO enriquecido
+        eventProducer.publishPolicyStatusChanged(policyDto, oldStatus);
 
         log.info("Estado de póliza actualizado con éxito. ID: {}", id);
 
-        return mapper.toDto(policy);
+        return policyDto;
     }
 
     @Override

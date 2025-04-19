@@ -13,31 +13,31 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class PolicyEventConsumer extends BaseEventConsumer {
 
-    @KafkaListener(topics = "policy.created", containerFactory = "policyKafkaListenerContainerFactory")
+    @KafkaListener(topics = "policy.created", containerFactory = "kafkaListenerContainerFactory")
     public void consumePolicyCreated(Map<String, Object> event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de póliza creada: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "policy.updated", containerFactory = "policyKafkaListenerContainerFactory")
+    @KafkaListener(topics = "policy.updated", containerFactory = "kafkaListenerContainerFactory")
     public void consumePolicyUpdated(Map<String, Object> event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de póliza actualizada: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "policy.status.changed", containerFactory = "policyKafkaListenerContainerFactory")
+    @KafkaListener(topics = "policy.status.changed", containerFactory = "kafkaListenerContainerFactory")
     public void consumePolicyStatusChanged(Map<String, Object> event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de cambio de estado de póliza: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "policy.cancelled", containerFactory = "policyKafkaListenerContainerFactory")
+    @KafkaListener(topics = "policy.cancelled", containerFactory = "kafkaListenerContainerFactory")
     public void consumePolicyCancelled(Map<String, Object> event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de cancelación de póliza: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
     }
 
-    @KafkaListener(topics = "policy.renewed", containerFactory = "policyKafkaListenerContainerFactory")
+    @KafkaListener(topics = "policy.renewed", containerFactory = "kafkaListenerContainerFactory")
     public void consumePolicyRenewed(Map<String, Object> event, Acknowledgment acknowledgment) {
         log.info("Recibido evento de renovación de póliza: {}", event.get("policyNumber"));
         processEvent(event, acknowledgment);
@@ -45,6 +45,14 @@ public class PolicyEventConsumer extends BaseEventConsumer {
 
     @Override
     protected String determineEventType(Map<String, Object> event) {
+        // Caso especial para POLICY_CREATED
+        if (event.get("eventType") != null) {
+            String rawType = event.get("eventType").toString();
+            if (rawType.equals("POLICY_CREATED")) {
+                return "policy.created";
+            }
+        }
+
         // Determinar el tipo de evento basado en el tópico Kafka o en los datos del evento
         if (event.get("actionType") != null) {
             return "policy." + event.get("actionType").toString().toLowerCase();
@@ -52,15 +60,7 @@ public class PolicyEventConsumer extends BaseEventConsumer {
 
         // Usar el eventType directamente del evento si está disponible
         if (event.get("eventType") != null) {
-            return event.get("eventType").toString();
-        }
-
-        // Convertir formatos POLICY_CREATED a policy.created
-        if (event.get("eventType") != null) {
-            String rawType = event.get("eventType").toString();
-            if (rawType.contains("_")) {
-                return "policy." + rawType.toLowerCase().replace("_", ".");
-            }
+            return event.get("eventType").toString().toLowerCase();
         }
 
         // Valor por defecto basado en la presencia de ciertos campos
