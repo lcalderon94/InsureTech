@@ -58,6 +58,10 @@ jwt:
   issuer: insurtech-auth
   expiration: 86400000
 
+tracing:
+  zipkin:
+    url: http://localhost:9411/api/v2/spans
+
 management:
   endpoints:
     web:
@@ -66,6 +70,13 @@ management:
   endpoint:
     health:
       show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+  metrics:
+    export:
+      prometheus:
+        enabled: true
 
 eureka:
   client:
