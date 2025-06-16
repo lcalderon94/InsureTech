@@ -1,0 +1,569 @@
+# Sistema de Gestión de Pólizas de Seguros (InsureTech)
+
+## Estructura General del Proyecto
+
+```
+insurtech-platform/
+├── api-gateway/
+├── config-server/
+├── discovery-service/
+├── auth-service/
+├── policy-service/
+├── customer-service/
+├── quote-service/
+├── claim-service/
+├── notification-service/
+├── risk-analysis-service/
+├── payment-service/
+├── document-service/
+└── monitoring/
+```
+
+## Tecnologías por Microservicio
+
+| Microservicio | Tecnologías Principales | Base de Datos | Características Especiales |
+|---------------|-------------------------|--------------|----------------------------|
+| **API Gateway** | Spring Cloud Gateway, Spring Security | Redis (cache) | Rate limiting, Circuit breaker patterns |
+| **Config Server** | Spring Cloud Config | Git (config files) | Configuración centralizada, encriptación |
+| **Discovery Service** | Eureka Server | - | Auto-registro y descubrimiento de servicios |
+| **Auth Service** | Spring Security, OAuth2, JWT | OracleSQL | Autenticación/Autorización, Gestión de tokens |
+| **Policy Service** | Spring Boot, JPA/Hibernate | OracleSQL | Programación concurrente para cálculos de pólizas |
+| **Customer Service** | Spring Boot, JPA/Hibernate | OracleSQL | Procesamiento por lotes con hilos |
+| **Quote Service** | Spring Boot, Spring WebFlux | MongoDB | Programación reactiva, CompletableFuture para cálculos paralelos |
+| **Claim Service** | Spring Boot, Spring Batch | OracleSQL | Procesamiento masivo con ThreadPoolTaskExecutor |
+| **Notification Service** | Spring Boot, Apache Kafka | Redis | Procesamiento asíncrono de eventos |
+| **Risk Analysis Service** | Spring Boot, ML libraries | MongoDB | ForkJoinPool para análisis paralelo de riesgos |
+| **Payment Service** | Spring Boot, Spring Integration | OracleSQL | Transacciones distribuidas con @Async |
+| **Document Service** | Spring Boot, Apache POI | MongoDB, MinIO | Procesamiento paralelo de documentos |
+| **Monitoring** | Prometheus, Grafana, Zipkin, ELK Stack | InfluxDB | Métricas de rendimiento, distributed tracing |
+
+## Infraestructura Compartida
+
+- **Message Broker**: Apache Kafka
+- **Container Orchestration**: Kubernetes
+- **CI/CD**: Jenkins, GitLab CI/CD
+- **Service Mesh**: Istio
+- **Load Testing**: JMeter, Gatling
+
+## Descripción Detallada de cada Microservicio
+
+### 1. API Gateway
+**Función**: Punto de entrada único para todas las solicitudes externas a la plataforma. Maneja enrutamiento, balanceo de carga, y seguridad perimetral.
+**Características de concurrencia**: Implementa Netty para manejo no bloqueante de miles de conexiones concurrentes.
+
+### 2. Config Server
+**Función**: Gestiona configuración centralizada para todos los microservicios, permitiendo cambios de configuración sin reinicios.
+**Características de concurrencia**: Caché distribuida con actualización asíncrona.
+
+### 3. Discovery Service
+**Función**: Permite el registro y descubrimiento dinámico de instancias de microservicios.
+**Características de concurrencia**: Replicación de estado entre nodos para alta disponibilidad.
+
+### 4. Auth Service
+**Función**: Gestiona autenticación, autorización y emisión de tokens JWT para usuarios y servicios.
+**Características de concurrencia**: Procesamiento paralelo de validación de credenciales y generación de tokens.
+
+### 5. Policy Service
+**Función**: Gestiona el ciclo de vida completo de las pólizas de seguro, desde creación hasta cancelación.
+**Características de concurrencia**: Utiliza ThreadPoolTaskExecutor para procesar múltiples operaciones sobre pólizas simultáneamente.
+
+### 6. Customer Service
+**Función**: Administra información de clientes, historial, perfiles de riesgo y segmentación.
+**Características de concurrencia**: Implementa procesamiento por lotes con multihilos para operaciones masivas sobre datos de clientes.
+
+### 7. Quote Service
+**Función**: Realiza cálculos complejos de primas de seguro basados en múltiples factores de riesgo.
+**Características de concurrencia**: Utiliza CompletableFuture para dividir cálculos complejos en subtareas paralelas.
+
+### 8. Claim Service
+**Función**: Procesa reclamaciones de seguros, evaluación, aprobación y liquidación.
+**Características de concurrencia**: Emplea Spring Batch con particionamiento paralelo para procesamiento masivo de reclamaciones.
+
+### 9. Notification Service
+**Función**: Envía notificaciones por múltiples canales (email, SMS, push) de manera asíncrona.
+**Características de concurrencia**: Arquitectura basada en eventos con Kafka y procesamiento paralelo de colas de mensajes.
+
+### 10. Risk Analysis Service
+**Función**: Analiza en tiempo real perfiles de riesgo utilizando modelos predictivos y machine learning.
+**Características de concurrencia**: Implementa ForkJoinPool para algoritmos de análisis de riesgo con paralelismo recursivo.
+
+### 11. Payment Service
+**Función**: Gestiona transacciones financieras, pagos, reembolsos y conciliación.
+**Características de concurrencia**: Procesamiento asíncrono de transacciones con compensación para garantizar consistencia eventual.
+
+### 12. Document Service
+**Función**: Gestiona documentos relacionados con pólizas, reclamaciones y clientes (generación, almacenamiento, búsqueda).
+**Características de concurrencia**: Procesamiento paralelo para generación y conversión de documentos.
+
+### 13. Monitoring
+**Función**: Recopila métricas, logs y trazas para monitorizar la salud y el rendimiento del sistema.
+**Características de concurrencia**: Recopilación y análisis asíncrono de datos de monitoreo.
+
+## Estructura Jerárquica de cada Microservicio
+
+Cada microservicio sigue una arquitectura en capas similar:
+
+```
+microservicio/
+├── src/
+│   ├── main/
+│   │   ├── java/com/insurtech/[service-name]/
+│   │   │   ├── config/             # Configuración específica del servicio
+│   │   │   │   ├── AsyncConfig.java      # Configuración de hilos y concurrencia
+│   │   │   │   ├── KafkaConfig.java      # Configuración de mensajería
+│   │   │   │   └── SecurityConfig.java   # Configuración de seguridad
+│   │   │   ├── controller/         # API REST endpoints
+│   │   │   ├── service/            # Lógica de negocio
+│   │   │   │   ├── impl/           # Implementaciones concretas
+│   │   │   │   └── async/          # Servicios asincrónicos específicos
+│   │   │   ├── repository/         # Acceso a datos
+│   │   │   ├── model/              # Entidades y DTO
+│   │   │   │   ├── entity/         # Entidades JPA/MongoDB
+│   │   │   │   └── dto/            # Objetos de transferencia de datos
+│   │   │   ├── exception/          # Manejo de excepciones personalizado
+│   │   │   ├── util/               # Utilidades
+│   │   │   ├── event/              # Gestión de eventos (productores/consumidores)
+│   │   │   │   ├── producer/       # Productores de eventos
+│   │   │   │   └── consumer/       # Consumidores de eventos
+│   │   │   ├── task/               # Tareas programadas y procesamiento en segundo plano
+│   │   │   └── [ServiceName]Application.java  # Punto de entrada
+│   │   └── resources/
+│   │       ├── application.yml     # Configuración principal
+│   │       ├── bootstrap.yml       # Configuración de bootstrap
+│   │       └── db/                 # Scripts de migración de DB
+│   └── test/                       # Pruebas unitarias e integración
+│       ├── java/
+│       │   └── com/insurtech/[service-name]/
+│       │       ├── controller/     # Pruebas de controladores
+│       │       ├── service/        # Pruebas de servicios
+│       │       └── repository/     # Pruebas de repositorios
+│       └── resources/              # Recursos para pruebas
+├── Dockerfile                      # Configuración para containerización
+├── pom.xml                         # Dependencias Maven
+└── README.md                       # Documentación específica del servicio
+```
+
+## Ejemplos Detallados de Implementación de Concurrencia
+
+### 1. Quote Service - Ejemplo de Estructura
+
+```
+quote-service/
+├── src/main/java/com/insurtech/quote/
+│   ├── config/
+│   │   ├── AsyncConfiguration.java         # Configuración del pool de hilos
+│   │   └── ReactiveMongoConfig.java        # Configuración de MongoDB reactivo
+│   ├── controller/
+│   │   └── QuoteController.java            # Endpoints para cotizaciones
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── QuoteServiceImpl.java       # Implementación del servicio
+│   │   │   └── PremiumCalculatorImpl.java  # Cálculo de primas
+│   │   ├── async/
+│   │   │   └── AsyncRiskEvaluator.java     # Evaluación asíncrona de riesgos
+│   │   └── QuoteService.java               # Interfaz del servicio
+│   ├── repository/
+│   │   └── QuoteRepository.java            # Acceso a datos reactivo
+│   ├── model/
+│   │   ├── entity/
+│   │   │   └── Quote.java                  # Entidad de cotización
+│   │   └── dto/
+│   │       ├── QuoteRequest.java           # DTO de solicitud
+│   │       └── QuoteResponse.java          # DTO de respuesta
+│   ├── task/
+│   │   └── QuoteBatchProcessor.java        # Procesamiento por lotes
+│   └── QuoteServiceApplication.java        # Punto de entrada
+└── src/test/...                            # Pruebas
+```
+
+### 2. Risk Analysis Service - Ejemplo de Estructura
+
+```
+risk-analysis-service/
+├── src/main/java/com/insurtech/risk/
+│   ├── config/
+│   │   ├── ForkJoinPoolConfig.java         # Configuración de ForkJoinPool
+│   │   └── KafkaConsumerConfig.java        # Configuración de consumidor Kafka
+│   ├── controller/
+│   │   └── RiskAnalysisController.java     # Endpoints para análisis de riesgo
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── RiskAnalysisServiceImpl.java  # Implementación del servicio
+│   │   │   └── MachineLearningServiceImpl.java  # Servicio de ML
+│   │   ├── async/
+│   │   │   └── ParallelRiskCalculator.java  # Cálculo paralelo de riesgos
+│   │   └── RiskAnalysisService.java        # Interfaz del servicio
+│   ├── task/
+│   │   ├── RiskScoringTask.java            # Tarea de puntuación de riesgo
+│   │   └── ForkJoinRiskAnalyzer.java       # Análisis con ForkJoin framework
+│   ├── model/
+│   │   ├── entity/
+│   │   │   └── RiskProfile.java            # Entidad de perfil de riesgo
+│   │   └── dto/...                         # DTOs varios
+│   └── RiskAnalysisApplication.java        # Punto de entrada
+└── src/test/...                            # Pruebas
+```
+
+### 3. Policy Service - Ejemplo de Estructura
+
+```
+policy-service/
+├── src/main/java/com/insurtech/policy/
+│   ├── config/
+│   │   ├── ThreadPoolConfig.java           # Configuración del pool de hilos
+│   │   └── CacheConfig.java                # Configuración de caché distribuida
+│   ├── controller/
+│   │   ├── PolicyController.java           # API principal de pólizas
+│   │   └── PolicyDocumentController.java   # API para documentos de pólizas
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── PolicyServiceImpl.java      # Implementación principal
+│   │   │   └── PolicyVersioningImpl.java   # Control de versiones
+│   │   ├── async/
+│   │   │   ├── AsyncPolicyProcessor.java   # Procesamiento asíncrono
+│   │   │   └── ConcurrentPolicyValidator.java # Validación concurrente
+│   │   └── PolicyService.java              # Interfaz del servicio
+│   ├── repository/
+│   │   ├── PolicyRepository.java           # Repositorio JPA
+│   │   └── PolicyHistoryRepository.java    # Historial de cambios
+│   ├── model/
+│   │   ├── entity/
+│   │   │   ├── Policy.java                 # Entidad principal
+│   │   │   └── PolicyVersion.java          # Entidad de versión
+│   │   └── dto/
+│   │       ├── PolicyRequest.java          # DTO de solicitud
+│   │       └── PolicyResponse.java         # DTO de respuesta
+│   ├── task/
+│   │   ├── PolicyIndexTask.java            # Indexación de pólizas
+│   │   └── PolicyBatchProcessor.java       # Procesamiento por lotes
+│   ├── event/
+│   │   ├── producer/
+│   │   │   └── PolicyEventProducer.java    # Emisor de eventos
+│   │   └── consumer/
+│   │       └── PolicyUpdateConsumer.java   # Consumidor de actualizaciones
+│   └── PolicyServiceApplication.java       # Punto de entrada
+└── src/test/...                            # Pruebas
+```
+
+### 4. Claim Service - Ejemplo de Estructura
+
+```
+claim-service/
+├── src/main/java/com/insurtech/claim/
+│   ├── config/
+│   │   ├── BatchConfig.java                # Configuración de Spring Batch
+│   │   └── ThreadPoolTaskExecutorConfig.java # Configuración de ThreadPoolTaskExecutor
+│   ├── controller/
+│   │   ├── ClaimController.java            # API de reclamaciones
+│   │   └── ClaimProcessingController.java  # API de procesamiento
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── ClaimServiceImpl.java       # Implementación principal
+│   │   │   └── ClaimSettlementServiceImpl.java # Servicio de liquidación
+│   │   ├── async/
+│   │   │   ├── AsyncClaimValidator.java    # Validación asíncrona
+│   │   │   └── ParallelDocumentProcessor.java # Procesamiento en paralelo
+│   │   └── ClaimService.java               # Interfaz del servicio
+│   ├── batch/
+│   │   ├── processor/
+│   │   │   └── ClaimItemProcessor.java     # Procesador de items
+│   │   ├── reader/
+│   │   │   └── ClaimReader.java            # Lector de reclamaciones
+│   │   └── writer/
+│   │       └── ClaimWriter.java            # Escritor de reclamaciones
+│   ├── repository/
+│   │   └── ClaimRepository.java            # Repositorio principal
+│   ├── model/
+│   │   ├── entity/
+│   │   │   ├── Claim.java                  # Entidad principal
+│   │   │   └── ClaimAudit.java             # Auditoría de reclamaciones
+│   │   └── dto/
+│   │       ├── ClaimRequest.java           # DTO de solicitud
+│   │       └── ClaimResponse.java          # DTO de respuesta
+│   ├── task/
+│   │   └── ClaimExpirationTask.java        # Tarea de expiración
+│   ├── event/
+│   │   ├── producer/
+│   │   │   └── ClaimEventProducer.java     # Emisor de eventos
+│   │   └── consumer/
+│   │       └── ClaimStatusConsumer.java    # Consumidor de estados
+│   └── ClaimServiceApplication.java        # Punto de entrada
+└── src/test/...                            # Pruebas
+```
+
+### 5. Notification Service - Ejemplo de Estructura
+
+```
+notification-service/
+├── src/main/java/com/insurtech/notification/
+│   ├── config/
+│   │   ├── KafkaConfig.java                # Configuración de Kafka
+│   │   └── AsyncConfig.java                # Configuración asíncrona
+│   ├── controller/
+│   │   └── NotificationController.java     # API de notificaciones
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── NotificationServiceImpl.java # Implementación principal
+│   │   │   ├── EmailServiceImpl.java       # Servicio de email
+│   │   │   ├── SmsServiceImpl.java         # Servicio de SMS
+│   │   │   └── PushNotificationServiceImpl.java # Notificaciones push
+│   │   ├── async/
+│   │   │   └── AsyncNotificationDispatcher.java # Despachador asíncrono
+│   │   └── NotificationService.java        # Interfaz del servicio
+│   ├── repository/
+│   │   └── NotificationRepository.java     # Repositorio de notificaciones
+│   ├── model/
+│   │   ├── entity/
+│   │   │   └── Notification.java           # Entidad principal
+│   │   └── dto/
+│   │       ├── NotificationRequest.java    # DTO de solicitud
+│   │       └── NotificationStatus.java     # Estado de notificación
+│   ├── event/
+│   │   ├── producer/
+│   │   │   └── NotificationFeedbackProducer.java # Emisor de feedback
+│   │   └── consumer/
+│   │       ├── PolicyEventConsumer.java    # Consumidor eventos de pólizas
+│   │       ├── ClaimEventConsumer.java     # Consumidor eventos de reclamaciones
+│   │       └── CustomerEventConsumer.java  # Consumidor eventos de clientes
+│   └── NotificationServiceApplication.java # Punto de entrada
+└── src/test/...                            # Pruebas
+```
+
+### 6. Customer Service - Ejemplo de Estructura
+
+```
+customer-service/
+├── src/main/java/com/insurtech/customer/
+│   ├── config/
+│   │   ├── ThreadPoolConfig.java           # Configuración del pool de hilos
+│   │   └── CacheConfig.java                # Configuración de caché
+│   ├── controller/
+│   │   ├── CustomerController.java         # API de clientes
+│   │   └── CustomerProfileController.java  # API de perfiles
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── CustomerServiceImpl.java    # Implementación principal
+│   │   │   └── CustomerAnalyticsServiceImpl.java # Servicio de analítica
+│   │   ├── async/
+│   │   │   ├── AsyncCustomerEnricher.java  # Enriquecimiento asíncrono
+│   │   │   └── ParallelCustomerProcessor.java # Procesamiento paralelo
+│   │   └── CustomerService.java            # Interfaz del servicio
+│   ├── repository/
+│   │   ├── CustomerRepository.java         # Repositorio principal
+│   │   └── CustomerPreferenceRepository.java # Preferencias de clientes
+│   ├── model/
+│   │   ├── entity/
+│   │   │   ├── Customer.java               # Entidad principal
+│   │   │   └── CustomerProfile.java        # Perfil de cliente
+│   │   └── dto/
+│   │       ├── CustomerRequest.java        # DTO de solicitud
+│   │       └── CustomerResponse.java       # DTO de respuesta
+│   ├── task/
+│   │   ├── CustomerSegmentationTask.java   # Segmentación de clientes
+│   │   └── CustomerDataCleanupTask.java    # Limpieza de datos
+│   ├── event/
+│   │   ├── producer/
+│   │   │   └── CustomerEventProducer.java  # Emisor de eventos
+│   │   └── consumer/
+│   │       └── CustomerUpdateConsumer.java # Consumidor de actualizaciones
+│   └── CustomerServiceApplication.java     # Punto de entrada
+└── src/test/...                            # Pruebas
+```
+
+### 7. Payment Service - Ejemplo de Estructura
+
+```
+payment-service/
+├── src/main/java/com/insurtech/payment/
+│   ├── config/
+│   │   ├── AsyncConfig.java               # Configuración de métodos @Async
+│   │   └── TransactionConfig.java         # Configuración de transacciones
+│   ├── controller/
+│   │   ├── PaymentController.java         # API de pagos
+│   │   └── RefundController.java          # API de reembolsos
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── PaymentServiceImpl.java    # Implementación principal
+│   │   │   ├── PaymentGatewayServiceImpl.java # Integración con pasarelas
+│   │   │   └── ReconciliationServiceImpl.java # Servicio de conciliación
+│   │   ├── async/
+│   │   │   ├── AsyncPaymentProcessor.java # Procesamiento asíncrono
+│   │   │   └── DistributedTransactionHandler.java # Transacciones distribuidas
+│   │   └── PaymentService.java            # Interfaz del servicio
+│   ├── repository/
+│   │   ├── PaymentRepository.java         # Repositorio principal
+│   │   └── TransactionLogRepository.java  # Registro de transacciones
+│   ├── model/
+│   │   ├── entity/
+│   │   │   ├── Payment.java               # Entidad principal
+│   │   │   └── TransactionLog.java        # Registro de transacción
+│   │   └── dto/
+│   │       ├── PaymentRequest.java        # DTO de solicitud
+│   │       └── PaymentResponse.java       # DTO de respuesta
+│   ├── task/
+│   │   ├── PaymentReconciliationTask.java # Reconciliación de pagos
+│   │   └── FailedPaymentRetryTask.java    # Reintentos de pagos fallidos
+│   ├── event/
+│   │   ├── producer/
+│   │   │   └── PaymentEventProducer.java  # Emisor de eventos
+│   │   └── consumer/
+│   │       └── PolicyPaymentConsumer.java # Consumidor de pagos de pólizas
+│   └── PaymentServiceApplication.java     # Punto de entrada
+└── src/test/...                           # Pruebas
+```
+
+### 8. Document Service - Ejemplo de Estructura
+
+```
+document-service/
+├── src/main/java/com/insurtech/document/
+│   ├── config/
+│   │   ├── ThreadPoolConfig.java          # Configuración del pool de hilos
+│   │   └── MinioConfig.java               # Configuración de almacenamiento
+│   ├── controller/
+│   │   ├── DocumentController.java        # API de documentos
+│   │   └── TemplateController.java        # API de plantillas
+│   ├── service/
+│   │   ├── impl/
+│   │   │   ├── DocumentServiceImpl.java   # Implementación principal
+│   │   │   ├── TemplateServiceImpl.java   # Servicio de plantillas
+│   │   │   └── StorageServiceImpl.java    # Servicio de almacenamiento
+│   │   ├── async/
+│   │   │   ├── AsyncDocumentGenerator.java # Generación asíncrona
+│   │   │   └── ParallelDocumentProcessor.java # Procesamiento en paralelo
+│   │   └── DocumentService.java           # Interfaz del servicio
+│   ├── repository/
+│   │   ├── DocumentRepository.java        # Repositorio principal
+│   │   └── TemplateRepository.java        # Repositorio de plantillas
+│   ├── model/
+│   │   ├── entity/
+│   │   │   ├── Document.java              # Entidad principal
+│   │   │   └── Template.java              # Entidad de plantilla
+│   │   └── dto/
+│   │       ├── DocumentRequest.java       # DTO de solicitud
+│   │       └── DocumentResponse.java      # DTO de respuesta
+│   ├── task/
+│   │   ├── DocumentBatchProcessor.java    # Procesamiento por lotes
+│   │   └── DocumentExpirationTask.java    # Expiración de documentos
+│   ├── event/
+│   │   ├── producer/
+│   │   │   └── DocumentEventProducer.java # Emisor de eventos
+│   │   └── consumer/
+│   │       └── PolicyDocumentConsumer.java # Consumidor de documentos
+│   └── DocumentServiceApplication.java    # Punto de entrada
+└── src/test/...                           # Pruebas
+```
+
+## Implementación de Código para Concurrencia y Multihilos
+
+A continuación se presentan implementaciones detalladas de clases clave que muestran cómo se implementa la concurrencia en el sistema:
+
+### 1. Configuración de Concurrencia (Quote Service)
+
+```
+AsyncConfiguration.java
+- Configuración del ThreadPoolTaskExecutor
+- Parámetros configurables por properties: corePoolSize, maxPoolSize, queueCapacity
+- Política de rechazo de tareas
+- Manejo de shutdown limpio
+```
+
+### 2. Servicio con Procesamiento Asíncrono (Quote Service)
+
+```
+QuoteServiceImpl.java
+- Implementación del servicio de cotizaciones
+- Métodos anotados con @Async para procesamiento asíncrono
+- Uso de CompletableFuture para paralelizar tareas
+- Método de procesamiento por lotes para múltiples cotizaciones
+- Estrategia de fallback para errores
+```
+
+### 3. Cálculo Paralelo con CompletableFuture (Quote Service)
+
+```
+PremiumCalculatorImpl.java
+- División de cálculo complejo en tareas paralelas
+- Ejecución concurrente de diferentes factores de cálculo
+- Combinación de resultados parciales
+- Timeout configurable para operaciones
+- Manejo de excepciones
+```
+
+### 4. Análisis de Riesgo con ForkJoin (Risk Analysis Service)
+
+```
+ForkJoinRiskAnalyzer.java
+- Implementación de RecursiveTask para análisis paralelo
+- División del problema en subtareas cuando supera un umbral
+- Combinación recursiva de resultados
+- Control de profundidad de recursión
+- Optimización de rendimiento con umbral adaptativo
+```
+
+### 5. Procesamiento Batch con Spring Batch (Claim Service)
+
+```
+ClaimBatchConfiguration.java
+- Configuración de JobRepository, JobLauncher
+- Definición de steps con lectores, procesadores y escritores
+- Particionamiento para procesamiento paralelo
+- Control de transacciones y puntos de control
+- Manejo de reintentos y errores
+```
+
+### 6. Consumo Concurrente de Eventos Kafka (Notification Service)
+
+```
+KafkaConsumerConfig.java
+- Configuración de listeners concurrentes
+- Estrategia de partición para paralelismo
+- Control de concurrencia por topic
+- Manejo de backpressure
+- Estrategias de error y reintentos
+```
+
+### 7. Procesamiento de Documentos en Paralelo (Document Service)
+
+```
+ParallelDocumentProcessor.java
+- División de documentos grandes en chunks procesables
+- Conversión y procesamiento paralelo
+- Uso de programación reactiva para flujos de documentos
+- Limitación de recursos por documento
+- Combinación final de resultados
+```
+
+### 8. Sincronización Distribuida (Payment Service)
+
+```
+DistributedLockService.java
+- Implementación de locks distribuidos con Redis
+- Prevención de race conditions en operaciones críticas
+- Timeout adaptativo según tipo de operación
+- Manejo de deadlocks
+- Estrategia de fallback
+```
+
+### 9. Controlador Web con Procesamiento Asíncrono (API Gateway)
+
+```
+AsyncRequestController.java
+- Manejo de solicitudes asíncronas con DeferredResult
+- Control de timeouts y cancelaciones
+- Limitación de tasa concurrente
+- Priorización de solicitudes
+- Circuit breaker pattern
+```
+
+### 10. Monitoreo de Threads y Performance
+
+```
+ThreadMonitorService.java
+- Exposición de métricas de rendimiento
+- Alertas de saturación de pools
+- Histórico de uso de recursos
+- Detección de thread leaks
+- Reportes de rendimiento por servicio
+```
+```

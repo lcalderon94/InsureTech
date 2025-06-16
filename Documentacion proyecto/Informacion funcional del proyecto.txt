@@ -1,0 +1,251 @@
+La idea es ilustrar el recorrido completo de la operación, desde la gestión inicial del cliente hasta la emisión final y el seguimiento post-contratación, abarcando cada módulo con sus decisiones, validaciones y puntos de integración. Se enfatiza el “flujo” en cada módulo, más allá de la mera definición de botones o campos.
+
+Módulo 3: Nueva Producción >> Oferta/Contratación
+Flujo General del Módulo:
+Este módulo es el núcleo del proceso de emisión. Una vez que el agente tiene al cliente disponible (ya ingresado o consultado en Gestión de Clientes), se inicia la emisión de una operación. El flujo se articula de la siguiente manera:
+
+Selección del Producto Comercial:
+
+Inicio: El agente accede al módulo y se despliega una lista de productos (por ejemplo, Hogar, Autos, Edificio de Viviendas, etc.).
+Decisión: Mediante filtros y ayudas visuales (tooltips, resúmenes), el agente selecciona el producto que se adapta a la necesidad del cliente.
+Impacto: La elección condiciona la estructura del flujo, activando campos y validaciones específicas para ese producto.
+Ingreso de Información General:
+
+Captura de Parámetros Iniciales: Se ingresan datos como la fecha de emisión, idioma y datos básicos que enlazan la operación con la información del agente y la empresa.
+Validación: El sistema revisa que todos los datos esenciales estén presentes; de no ser así, se muestran alertas para corregir la información.
+Captura del Objeto Asegurado:
+
+Operación Diferenciada según Producto:
+En seguros de Hogar, se recogen datos del inmueble (dirección, superficie, distribución, datos catastrales).
+En Autos, se ingresan datos del vehículo (matrícula, modelo, año, características técnicas).
+Evaluación del Riesgo: Los datos se procesan para calcular preliminarmente la prima, activando validaciones que, por ejemplo, contrastan la información manual con datos externos (catastro o catálogo de vehículos).
+Asignación de Figuras Participantes:
+
+Roles y Relación: Se asocian las figuras clave (tomador, asegurado, beneficiarios, y en ocasiones acreedor financiero).
+Decisión Crítica: Si se detecta que algunos datos fundamentales han cambiado (como el NIF o el nombre), el sistema sugiere “copiar” al cliente, generando un nuevo registro que garantiza la integridad de la operación.
+Configuración de Coberturas, Descuentos y Recargos:
+
+Selección y Personalización: El agente elige entre una serie de coberturas agrupadas por categorías.
+Cálculo Dinámico: Con base en el perfil de riesgo (historial siniestral, características del objeto y del cliente), se aplican bonificaciones o recargos.
+Control: Se ejecutan validaciones en tiempo real para evitar combinaciones incompatibles o que sobrepasen límites preestablecidos.
+Configuración del Pago y Confirmación:
+
+Definición del Plan: Se selecciona la forma de pago (único, fraccionado o recurrente) y se capturan datos bancarios y fechas de vencimiento.
+Revisión Global: Antes de avanzar, se genera un resumen que integra todos los datos de la operación, permitiendo al agente y al cliente verificar la coherencia y la tarifa final.
+Emisión y Finalización de la Operación:
+
+Proyecto: Se genera un documento preliminar que recoge el precio calculado y la configuración realizada.
+Propuesta: Tras revisión y ajustes, se emite una propuesta formal con un período de validez (por lo general 60 días).
+Contratación: Finalmente, si el cliente aprueba la propuesta, se emite la póliza definitiva con la documentación contractual, integrando opciones de firma digital o biométrica y generando notificaciones automáticas.
+Módulo 4: Gestión de Operaciones
+Flujo General del Módulo:
+Este módulo se encarga de administrar y hacer seguimiento a las operaciones ya iniciadas. Su flujo permite gestionar las operaciones a lo largo de su ciclo de vida.
+
+Ingreso y Búsqueda de Operaciones:
+
+El usuario accede a un listado que muestra operaciones en distintos estados (proyecto, propuesta, emitida, bloqueada, etc.).
+Se aplican filtros por fecha (con intervalos de 32 o 60 días), NIF, nombre del tomador o número de póliza para localizar rápidamente la operación deseada.
+Visualización Detallada y Revisión:
+
+Al seleccionar una operación, se despliega una vista detallada que muestra todos los datos ingresados, el historial de modificaciones y las validaciones realizadas.
+Se pueden observar indicadores visuales (como estados y alertas) que permiten identificar operaciones que requieran atención o revisión.
+Acciones sobre la Operación:
+
+Duplicar: Permite crear una copia de la operación para reutilizar los datos en una nueva emisión sin reingresar toda la información.
+Retomar: Si una operación quedó incompleta o la prima ha caducado, se puede reactivar el flujo y recalcular los parámetros.
+Eliminar/Restablecer: Para operaciones erróneas, se pueden borrar o reiniciar a un estado anterior.
+Generar Documentos: Se dispone de una opción para regenerar la documentación, útil si se han realizado modificaciones o si se necesita un duplicado actualizado.
+Exportación: El listado o la operación en particular pueden exportarse en formatos Excel o PDF para informes o auditorías.
+Verificación y Notificaciones:
+
+El módulo integra funciones para enviar alertas o notificaciones (por ejemplo, si una operación supera un límite de días sin actualizarse) y permite el acceso a controles técnicos asociados.
+Módulo 5: Consulta de Póliza
+Flujo General del Módulo:
+Este módulo permite la búsqueda y análisis detallado de las pólizas emitidas, facilitando la revisión de historiales y comparativas.
+
+Búsqueda y Filtrado de Pólizas:
+
+Se pueden aplicar múltiples filtros: número de póliza, documento del tomador, fecha de emisión, entre otros.
+La búsqueda avanzada permite combinar criterios para localizar pólizas específicas o aquellas que tienen solicitudes en curso.
+Visualización de Detalles:
+
+Al seleccionar una póliza, se muestra un desglose completo del movimiento, incluyendo cambios en coberturas, ajustes de primas y validaciones realizadas.
+Se visualizan de forma secuencial las diferentes “situaciones” que ha atravesado la póliza (por ejemplo, emisión, suplemento, anulación).
+Comparativa de Movimientos:
+
+El sistema permite comparar dos momentos o situaciones diferentes de una misma póliza, facilitando la identificación de cambios en condiciones, descuentos o recargos.
+Se generan informes que integran gráficos o resúmenes que ayudan en la toma de decisiones y en la verificación de consistencia.
+Generación y Consulta de Documentos:
+
+Desde este módulo se pueden generar documentos (como certificados o resúmenes) basados en una situación específica de la póliza.
+La integración con Consuweb permite acceder a documentación digital adicional que respalde la operación.
+Módulo 6: Gestión de Cartera / Suplementos
+Flujo General del Módulo:
+Este módulo abarca la gestión de pólizas en vigor y la emisión de suplementos o modificaciones post-contratación.
+
+Selección de Póliza en Cartera:
+
+El usuario accede a un listado de pólizas vigentes, donde se pueden identificar aquellas que requieren ajustes o actualizaciones.
+Se aplican filtros para identificar pólizas que tengan solicitudes en curso o que estén próximas a vencerse.
+Iniciación de un Suplemento o Modificación:
+
+Se selecciona la póliza y se inicia un flujo de suplemento. Dependiendo del tipo de ajuste, el proceso puede ser:
+Suplemento General: Para modificar condiciones generales sin anular la póliza original.
+Anulación/Rehabilitación: Para dar de baja o reactivar la póliza según cambios en la situación del riesgo.
+En algunos casos, se pueden activar flujos para cambiar medios de pago, datos de contacto o incluso revertir modificaciones previas (por ejemplo, “Suplemento de Anulación de Suplemento”).
+Validaciones y Comparativas:
+
+Durante el flujo, el sistema realiza comparativas entre la situación actual y la anterior de la póliza, evidenciando cambios en coberturas, primas y condiciones.
+Se muestran mensajes preventivos si existe alguna operación pendiente (por ejemplo, si ya hay un suplemento en curso).
+Confirmación y Actualización:
+
+Una vez verificada la información y realizados los ajustes, se actualiza la póliza.
+Se genera la documentación correspondiente que respalda el cambio, la cual se integra al historial de la póliza para futuras consultas.
+Módulo 7: Suscripción
+Flujo General del Módulo:
+La función de suscripción es crítica para la validación final de las operaciones. Aquí, el suscriptor (o el equipo central) revisa las solicitudes antes de autorizar la emisión definitiva.
+
+Ingreso a la Bandeja de Solicitudes:
+
+El suscriptor accede a una bandeja que agrupa todas las solicitudes pendientes, ya sean de nuevas operaciones, suplementos o modificaciones.
+Se muestran indicadores visuales del estado de cada solicitud (por ejemplo, “pendiente”, “autorizada” o “denegada”).
+Revisión Detallada de la Solicitud:
+
+Al seleccionar una solicitud, se despliega un informe completo que incluye todos los datos capturados, validaciones técnicas y controles aplicados.
+Se revisa el historial de la solicitud para confirmar que no existan inconsistencias o errores.
+Decisión y Acciones:
+
+El suscriptor puede aprobar la solicitud de forma directa (si la información es correcta) o solicitar modificaciones si detecta alguna anomalía.
+Existen opciones para reasignar, consultar controles técnicos o ver el historial completo, lo que facilita la toma de decisiones y el seguimiento.
+En caso de requerirse cambios, se activa el flujo de “Suscripción Modificación” para recalcular parámetros o actualizar datos.
+Notificación y Cierre:
+
+Una vez tomada la decisión, el sistema envía notificaciones automáticas (a través de correo o SMS) tanto al emisor como a otros actores involucrados.
+La solicitud se archiva en el historial para posteriores auditorías o consultas.
+Módulo 8: Gestión de Solicitudes
+Flujo General del Módulo:
+Este módulo se centra en la administración de las respuestas y solicitudes generadas en el proceso de emisión y suscripción.
+
+Recepción y Listado de Solicitudes:
+
+Se agrupan todas las solicitudes (de pólizas, suplementos, anulación, etc.) en un listado accesible para los usuarios que gestionan este módulo.
+Los filtros permiten ordenar por número, fecha, estado o cliente, facilitando la identificación de solicitudes críticas.
+Acción sobre Solicitudes:
+
+Revisión Técnica: Se accede a controles técnicos específicos a través del botón “C. Técnicos”, donde se muestran validaciones o alertas pendientes.
+Ver Historial y Consultar: Permite al usuario ver el recorrido completo de la solicitud, incluyendo comentarios y modificaciones anteriores.
+Eliminar o Restablecer: Si la solicitud resulta errónea o se requiere reiniciar el proceso, se pueden eliminar o restablecer los datos.
+Exportación de Datos: Para reportes o auditorías, se puede exportar la información de las solicitudes en formatos como Excel o PDF.
+Retomar Solicitudes:
+
+Si una solicitud fue denegada o quedó incompleta, existe la opción de “retomarla”, lo que abre el flujo para corregir la información y reanudar el proceso de emisión o modificación.
+Módulo 9: Gestión Documental
+Flujo General del Módulo:
+La gestión documental se encarga de almacenar, visualizar y enviar todos los documentos generados a lo largo del proceso, garantizando que la información contractual esté siempre disponible y actualizada.
+
+Captura y Clasificación de Documentos:
+
+Los documentos se generan en cada fase (proyecto, propuesta, póliza, certificados, etc.) y se clasifican en categorías definidas.
+Se integra la opción de previsualizar la documentación para verificar su contenido antes de enviarla o imprimirla.
+Configuración de Medios de Envío:
+
+Se definen los canales por los que se enviará la documentación: electrónico (correo o SMS), descarga directa o impresión.
+Se configura el idioma y se pueden asignar destinatarios alternativos o incluir copias a otros contactos.
+Generación de Duplicados y Firma:
+
+Si se requiere, el sistema permite generar duplicados y seleccionar el tipo de firma (digital, biométrica) que se aplicará al documento.
+El flujo incluye una verificación final que permite al agente revisar la documentación antes de su consolidación en el expediente de la operación.
+Módulo 10: Nueva Producción >> Oferta Multiprecio
+Flujo General del Módulo:
+Este módulo extiende la operativa básica de Nueva Producción para cubrir casos en los que se requiere emitir una oferta que incluya múltiples productos en una sola operación.
+
+Ingreso de Información Básica Multiproducto:
+
+Se captura la información general de la operación, similar a la de una emisión única, pero con la capacidad de asociar varios productos comerciales.
+El sistema permite reutilizar datos comunes para agilizar la captura.
+Captura de Datos para Múltiples Objetos Asegurados:
+
+Se pueden ingresar simultáneamente datos de varios objetos, por ejemplo, más de un inmueble o varios vehículos.
+Cada objeto cuenta con su propia validación (consulta al catastro, verificación en el catálogo de vehículos, etc.) y, a la vez, se integran en un resumen global.
+Asignación de Figuras y Configuración de Coberturas:
+
+Los roles pueden ser compartidos o diferenciados entre los productos; el agente asigna las figuras participantes y configura coberturas tanto individualmente como de forma global para la operación.
+Se aplican descuentos y recargos de forma diferenciada, pero con la opción de ajustar globalmente si se detectan sinergias o condiciones comunes.
+Configuración del Pago y Emisión Integrada:
+
+Se genera un único plan de pago que agrupa todos los productos, permitiendo un resumen consolidado.
+La documentación final se emite de forma integrada, reflejando cada producto incluido y los ajustes correspondientes.
+Verificación Digital y Finalización:
+
+Se integra un paso de verificación digital específico para operaciones multiprecio, con notificaciones y validaciones que aseguran la correcta integración de toda la información.
+Módulo 11: Catastro Hogar
+Flujo General del Módulo:
+Este módulo se dedica a la integración y verificación de datos catastrales para seguros de hogar, mejorando la precisión en la valoración del riesgo.
+
+Consulta y Conexión al Catastro:
+
+Al capturar datos del objeto asegurado en un seguro de hogar, el sistema ofrece la opción de conectarse automáticamente con la base de datos catastral.
+Se envía la dirección y otros parámetros para obtener información oficial sobre la superficie, distribución y características del inmueble.
+Validación y Sincronización de Datos:
+
+La información recuperada se compara con la ingresada manualmente; si hay discrepancias, se notifica al agente para realizar las correcciones necesarias.
+Una vez validada, la información se sincroniza con el flujo principal de la operación, influyendo en el cálculo de la prima y en la valoración del riesgo.
+Módulo 13: Genofer (Generación Automática de Ofertas Hogar y Vida)
+Flujo General del Módulo:
+Genofer automatiza la generación de ofertas, especialmente en productos de Hogar y Vida, optimizando el tiempo de respuesta y la precisión de la tarificación.
+
+Recuperación de Datos:
+
+El sistema recoge los datos ya ingresados del cliente y del objeto asegurado.
+Se aplica un algoritmo de comparación que evalúa el riesgo y contrasta condiciones con ofertas previas o con parámetros preestablecidos.
+Generación Automática de la Oferta:
+
+Con base en el análisis, Genofer genera una oferta automática que incluye la tarifa, descuentos y recargos aplicados.
+La oferta se presenta en un formato similar al de un proyecto, permitiendo al agente revisarla, ajustar parámetros y, de ser necesario, derivarla al flujo de emisión formal.
+Integración y Notificación:
+
+La oferta generada se integra al módulo de Nueva Producción, permitiendo que el agente la transforme en propuesta y, finalmente, en contrato si es aprobada.
+Se envían notificaciones al equipo responsable para la revisión y autorización final.
+Módulo 14: Gestión de Clientes
+Flujo General del Módulo:
+Este módulo abarca todas las operaciones relacionadas con la administración de la base de clientes, asegurando que la información esté actualizada y sea coherente a lo largo de todo el proceso.
+
+Registro y Alta de Clientes:
+
+Se capturan todos los datos personales, de contacto y, en lo posible, de medios de pago del cliente.
+El sistema verifica la existencia de registros previos y, en caso de detectar cambios críticos (como NIF o nombre), se activa la opción de “Copiar Cliente” para generar un nuevo registro.
+Consulta y Modificación:
+
+Los agentes pueden buscar clientes mediante filtros (nombre, NIF, dirección) y acceder a una vista detallada.
+Se permiten modificaciones en datos personales y de contacto, siempre con validaciones para no alterar la integridad de la información histórica asociada a operaciones previas.
+Integración con el Flujo de Emisión:
+
+Una vez verificado y actualizado, el cliente se vincula de forma automática al flujo de Nueva Producción, facilitando la asignación de figuras y la consulta de datos en cada módulo.
+Módulo 15: Catálogo de Vehículos
+Flujo General del Módulo:
+Este módulo está dedicado a la selección y validación de vehículos para seguros de autos.
+
+Acceso y Consulta del Catálogo:
+
+Desde el menú principal, el agente accede al Catálogo de Vehículos, donde puede buscar por marca, modelo, año y otros atributos técnicos.
+El sistema muestra una lista detallada con especificaciones técnicas y opciones para filtrar o ordenar los resultados.
+Selección y Vinculación:
+
+Una vez identificado el vehículo adecuado, el agente lo selecciona, y sus datos se transfieren automáticamente al módulo de Nueva Producción, en la sección de “Objeto Asegurado – Autos”.
+Se realiza una validación cruzada para asegurar que los datos coincidan con los parámetros de tarificación del seguro.
+Actualización y Consulta Dinámica:
+
+El catálogo se actualiza de forma periódica para reflejar nuevas incorporaciones o cambios en los modelos, asegurando que la información utilizada para el cálculo del riesgo esté siempre al día.
+Conclusión Integrada
+Cada uno de estos módulos se interrelaciona en un flujo global que abarca desde el primer contacto con el cliente hasta la emisión definitiva de la póliza y su seguimiento post-contratación. La estructura modular del sistema NSE permite:
+
+Una operación secuencial y validada:
+Cada módulo incorpora controles automáticos y validaciones en tiempo real que garantizan la coherencia y la precisión de la información.
+
+Flexibilidad y adaptabilidad:
+Funciones como duplicar, retomar, modificar y generar documentos permiten ajustar la operación según cambios en la información o requerimientos del cliente.
+
+Integración de herramientas complementarias:
+Conexiones al catastro, al catálogo de vehículos y sistemas automáticos como Genofer agilizan y optimizan el proceso, reduciendo la posibilidad de errores y mejorando la experiencia tanto del agente como del cliente.
+
+Este flujo modular y detallado representa un proceso robusto y flexible, diseñado para responder de forma ágil a las necesidades del negocio y garantizar la consistencia en la emisión, gestión y seguimiento de las pólizas

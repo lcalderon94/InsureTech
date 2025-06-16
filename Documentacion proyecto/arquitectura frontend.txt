@@ -1,0 +1,552 @@
+# Frontend Angular para Sistema de Gestión de Pólizas de Seguros
+
+## Estructura General del Proyecto
+
+```
+insurtech-frontend/
+├── src/
+│   ├── app/
+│   │   ├── core/                         # Servicios y utilidades core
+│   │   ├── shared/                       # Componentes y directivas compartidas
+│   │   ├── modules/                      # Módulos funcionales
+│   │   ├── layout/                       # Componentes de estructura visual
+│   │   └── app.module.ts                 # Módulo principal
+│   ├── assets/                           # Recursos estáticos
+│   ├── environments/                     # Configuraciones por entorno
+│   └── styles/                           # Estilos globales
+├── angular.json                          # Configuración del proyecto
+├── package.json                          # Dependencias
+└── nginx.conf                            # Configuración para producción
+```
+
+## Módulos Funcionales
+
+```
+modules/
+├── auth/                                 # Autenticación y autorización
+├── dashboard/                            # Dashboard principal
+├── policies/                             # Gestión de pólizas
+├── customers/                            # Gestión de clientes
+├── quotes/                               # Cotizaciones
+├── claims/                               # Gestión de reclamaciones
+├── payments/                             # Pagos y facturación
+├── documents/                            # Gestión documental
+├── reports/                              # Informes y analítica
+└── admin/                                # Administración del sistema
+```
+
+## Tecnologías por Módulo
+
+| Módulo | Tecnologías/Características Específicas | Integración Backend |
+|--------|----------------------------------------|---------------------|
+| **Auth** | Guards, Interceptors, JWT, OAuth | Auth Service |
+| **Dashboard** | NgRx, D3.js, Angular Material | Múltiples servicios |
+| **Policies** | Formularios reactivos, Validación dinámica | Policy Service |
+| **Customers** | Gestión de estado, Búsqueda avanzada | Customer Service |
+| **Quotes** | Cálculos reactivos, Web Workers | Quote Service |
+| **Claims** | Flujos de trabajo, Stepper | Claim Service |
+| **Payments** | Integración pasarelas, Cifrado | Payment Service |
+| **Documents** | Visor PDF, Firma electrónica | Document Service |
+| **Reports** | Exportación múltiples formatos, Gráficos avanzados | Múltiples servicios |
+| **Admin** | Gestión de roles, Configuración del sistema | Auth Service, Config Server |
+
+## Estructura Detallada por Módulo
+
+### 1. Módulo de Autenticación
+
+```
+auth/
+├── components/
+│   ├── login/                            # Inicio de sesión
+│   ├── register/                         # Registro (si aplica)
+│   ├── forgot-password/                  # Recuperación de contraseña
+│   └── profile/                          # Perfil de usuario
+├── guards/
+│   ├── auth.guard.ts                     # Guard de autenticación
+│   └── role.guard.ts                     # Guard de roles
+├── interceptors/
+│   ├── token.interceptor.ts              # Manejo de tokens
+│   └── error.interceptor.ts              # Gestión de errores de autenticación
+├── services/
+│   ├── auth.service.ts                   # Servicio principal
+│   └── token-storage.service.ts          # Almacenamiento de tokens
+├── models/
+│   ├── user.model.ts                     # Modelo de usuario
+│   └── credentials.model.ts              # Modelo de credenciales
+└── auth.module.ts                        # Definición del módulo
+```
+
+### 2. Módulo de Pólizas
+
+```
+policies/
+├── components/
+│   ├── policy-list/                      # Listado de pólizas
+│   ├── policy-detail/                    # Detalle de póliza
+│   ├── policy-create/                    # Creación de póliza
+│   ├── policy-update/                    # Actualización de póliza
+│   └── policy-comparison/                # Comparador de pólizas
+├── forms/
+│   ├── policy-base-form/                 # Formulario base
+│   ├── policy-auto-form/                 # Formulario para seguro de auto
+│   ├── policy-home-form/                 # Formulario para seguro de hogar
+│   └── policy-life-form/                 # Formulario para seguro de vida
+├── services/
+│   ├── policy.service.ts                 # Servicio principal
+│   └── policy-calculation.service.ts     # Servicio de cálculos
+├── store/
+│   ├── actions/                          # Acciones NgRx
+│   ├── reducers/                         # Reducers NgRx
+│   ├── effects/                          # Efectos NgRx
+│   └── selectors/                        # Selectores NgRx
+├── models/
+│   ├── policy.model.ts                   # Modelo principal
+│   └── coverage.model.ts                 # Modelo de coberturas
+└── policies.module.ts                    # Definición del módulo
+```
+
+### 3. Módulo de Cotizaciones
+
+```
+quotes/
+├── components/
+│   ├── quote-wizard/                     # Asistente de cotización
+│   ├── quote-calculator/                 # Calculadora interactiva
+│   ├── quote-comparison/                 # Comparador de cotizaciones
+│   └── quote-summary/                    # Resumen de cotización
+├── services/
+│   ├── quote.service.ts                  # Servicio principal
+│   ├── pricing.service.ts                # Servicio de precios
+│   └── web-worker.service.ts             # Servicio de Web Workers
+├── workers/
+│   └── calculation.worker.ts             # Web Worker para cálculos intensivos
+├── models/
+│   ├── quote-request.model.ts            # Modelo de solicitud
+│   └── quote-response.model.ts           # Modelo de respuesta
+├── pipes/
+│   └── currency-format.pipe.ts           # Formateo específico de moneda
+└── quotes.module.ts                      # Definición del módulo
+```
+
+### 4. Módulo de Reclamaciones
+
+```
+claims/
+├── components/
+│   ├── claim-list/                       # Listado de reclamaciones
+│   ├── claim-detail/                     # Detalle de reclamación
+│   ├── claim-submission/                 # Presentación de reclamación
+│   └── claim-tracking/                   # Seguimiento de reclamación
+├── forms/
+│   ├── claim-base-form/                  # Formulario base
+│   ├── evidence-upload/                  # Carga de pruebas/documentos
+│   └── damage-assessment/                # Evaluación de daños
+├── services/
+│   ├── claim.service.ts                  # Servicio principal
+│   └── document-upload.service.ts        # Servicio de carga de documentos
+├── models/
+│   ├── claim.model.ts                    # Modelo principal
+│   └── claim-status.model.ts             # Estados de reclamación
+├── directives/
+│   └── file-drop.directive.ts            # Directiva de arrastrar y soltar
+└── claims.module.ts                      # Definición del módulo
+```
+
+### 5. Módulo de Dashboard
+
+```
+dashboard/
+├── components/
+│   ├── main-dashboard/                   # Dashboard principal
+│   ├── widgets/                          # Widgets diversos
+│   │   ├── policy-summary/               # Resumen de pólizas
+│   │   ├── claims-overview/              # Visión general de reclamaciones
+│   │   ├── payment-status/               # Estado de pagos
+│   │   └── risk-indicators/              # Indicadores de riesgo
+│   └── charts/                           # Gráficos
+│       ├── policy-distribution/          # Distribución de pólizas
+│       ├── claims-trend/                 # Tendencia de reclamaciones
+│       └── premium-evolution/            # Evolución de primas
+├── services/
+│   ├── dashboard.service.ts              # Servicio principal
+│   └── chart-data.service.ts             # Servicio de datos para gráficos
+├── models/
+│   ├── dashboard-data.model.ts           # Modelo de datos
+│   └── widget-config.model.ts            # Configuración de widgets
+└── dashboard.module.ts                   # Definición del módulo
+```
+
+## Componentes Core
+
+### 1. Estructura del Core
+
+```
+core/
+├── services/
+│   ├── api.service.ts                    # Servicio base de API
+│   ├── error-handler.service.ts          # Manejo global de errores
+│   ├── loading.service.ts                # Gestión de estados de carga
+│   ├── notification.service.ts           # Servicio de notificaciones
+│   └── logger.service.ts                 # Servicio de logging
+├── interceptors/
+│   ├── http-error.interceptor.ts         # Interceptor de errores HTTP
+│   ├── loader.interceptor.ts             # Interceptor para mostrar/ocultar loader
+│   └── cache.interceptor.ts              # Interceptor para caché de peticiones
+├── guards/
+│   ├── module-permission.guard.ts        # Guard para permisos de módulos
+│   └── unsaved-changes.guard.ts          # Prevención de salida con cambios sin guardar
+└── core.module.ts                        # Definición del módulo
+```
+
+### 2. Componentes Compartidos
+
+```
+shared/
+├── components/
+│   ├── ui/                               # Componentes UI genéricos
+│   │   ├── data-table/                   # Tabla de datos avanzada
+│   │   ├── file-uploader/                # Cargador de archivos
+│   │   ├── search-box/                   # Caja de búsqueda
+│   │   └── pagination/                   # Componente de paginación
+│   └── business/                         # Componentes de negocio
+│       ├── policy-card/                  # Tarjeta de póliza
+│       ├── customer-info/                # Información de cliente
+│       └── payment-method-selector/      # Selector de método de pago
+├── directives/
+│   ├── permission.directive.ts           # Directiva de permisos
+│   ├── currency-mask.directive.ts        # Máscara para entrada de moneda
+│   └── tooltip.directive.ts              # Tooltip personalizado
+├── pipes/
+│   ├── safe-html.pipe.ts                 # Pipe para HTML seguro
+│   ├── local-date.pipe.ts                # Formateo de fechas localizado
+│   └── file-size.pipe.ts                 # Formateo de tamaño de archivos
+├── models/
+│   ├── pagination.model.ts               # Modelo de paginación
+│   └── api-response.model.ts             # Modelo de respuesta de API
+└── shared.module.ts                      # Definición del módulo
+```
+
+## Integración con Backend y Concurrencia
+
+### 1. Estrategias de Comunicación con Backend
+
+```
+core/services/
+├── api-client.service.ts                 # Cliente API principal
+├── websocket.service.ts                  # Cliente WebSocket para tiempo real
+├── event-bus.service.ts                  # Bus de eventos para comunicación
+└── retry-strategy.service.ts             # Estrategias de reintento
+```
+
+### 2. Gestión de Estado con NgRx
+
+```
+core/store/
+├── app.state.ts                          # Definición del estado global
+├── actions/                              # Acciones compartidas
+├── reducers/                             # Reducers compartidos
+├── effects/                              # Efectos compartidos
+└── selectors/                            # Selectores compartidos
+```
+
+### 3. Procesamiento Concurrente con Web Workers
+
+```
+core/workers/
+├── worker-registry.service.ts            # Registro de workers
+├── worker-factory.service.ts             # Factoría de workers
+└── workers/
+    ├── data-processing.worker.ts         # Procesamiento de datos
+    ├── calculation.worker.ts             # Cálculos complejos
+    └── pdf-generation.worker.ts          # Generación de PDF
+```
+
+## Arquitectura de Rendimiento y Optimización
+
+### 1. Estrategias de Lazy Loading
+
+```
+app-routing.module.ts                     # Configuración de rutas principal con lazy loading
+```
+
+### 2. Optimización de Rendimiento
+
+```
+core/services/
+├── performance-monitoring.service.ts     # Monitoreo de rendimiento
+└── prefetch.service.ts                   # Precarga inteligente
+```
+
+### 3. PWA y Soporte Offline
+
+```
+app/
+├── service-worker.ts                     # Configuración del Service Worker
+└── offline/
+    ├── offline.module.ts                 # Módulo para funcionalidad offline
+    ├── sync.service.ts                   # Sincronización cuando hay conexión
+    └── storage.service.ts                # Almacenamiento local
+```
+
+## Integración con Monitoreo y Observabilidad
+
+```
+core/monitoring/
+├── error-tracking.service.ts             # Seguimiento de errores (Sentry)
+├── analytics.service.ts                  # Analítica de uso
+├── performance-metrics.service.ts        # Métricas de rendimiento
+└── user-feedback.service.ts              # Recopilación de feedback
+```
+
+## Seguridad Frontend
+
+```
+core/security/
+├── content-security.service.ts           # Políticas de seguridad
+├── xss-protection.service.ts             # Protección contra XSS
+└── sensitive-data.service.ts             # Manejo de datos sensibles
+```
+
+
+# Jerarquía Completa de Carpetas para la Aplicación Angular de Seguros
+
+```
+insurtech-frontend/
+│
+├── src/
+│   ├── app/                              # Código fuente principal de la aplicación
+│   │   ├── app.component.ts              # Componente raíz
+│   │   ├── app.component.html            # Plantilla del componente raíz
+│   │   ├── app.component.scss            # Estilos del componente raíz
+│   │   ├── app.module.ts                 # Módulo principal
+│   │   ├── app-routing.module.ts         # Configuración de rutas principal
+│   │   │
+│   │   ├── core/                         # Funcionalidad core (singleton services, etc.)
+│   │   │   ├── authentication/           # Autenticación a nivel de aplicación
+│   │   │   │   ├── services/
+│   │   │   │   │   ├── auth.service.ts   
+│   │   │   │   │   └── token.service.ts
+│   │   │   │   └── guards/
+│   │   │   │       └── auth.guard.ts
+│   │   │   │
+│   │   │   ├── http/                     # Manejo de comunicaciones HTTP
+│   │   │   │   ├── api.service.ts        # Servicio base para llamadas API
+│   │   │   │   └── interceptors/
+│   │   │   │       ├── error.interceptor.ts
+│   │   │   │       ├── auth.interceptor.ts
+│   │   │   │       └── loader.interceptor.ts
+│   │   │   │
+│   │   │   ├── services/                 # Servicios core de la aplicación
+│   │   │   │   ├── notification.service.ts
+│   │   │   │   ├── logger.service.ts
+│   │   │   │   └── error-handler.service.ts
+│   │   │   │
+│   │   │   ├── store/                    # Store global NgRx 
+│   │   │   │   ├── index.ts              # Exportaciones del store
+│   │   │   │   ├── app.state.ts          # Interfaz del estado global
+│   │   │   │   ├── actions/              # Acciones globales
+│   │   │   │   ├── reducers/             # Reducers globales
+│   │   │   │   ├── effects/              # Efectos globales
+│   │   │   │   └── selectors/            # Selectores globales
+│   │   │   │
+│   │   │   ├── workers/                  # Web Workers
+│   │   │   │   ├── worker-registry.service.ts
+│   │   │   │   └── workers/
+│   │   │   │       └── calculation.worker.ts
+│   │   │   │
+│   │   │   ├── monitoring/               # Monitoreo y analytics
+│   │   │   │   └── performance.service.ts
+│   │   │   │
+│   │   │   ├── models/                   # Modelos core compartidos
+│   │   │   │   └── user.model.ts
+│   │   │   │
+│   │   │   └── core.module.ts            # Módulo core
+│   │   │
+│   │   ├── shared/                       # Componentes, directivas y pipes compartidos
+│   │   │   ├── components/               # Componentes compartidos
+│   │   │   │   ├── ui/                   # Componentes de UI genéricos
+│   │   │   │   │   ├── data-table/
+│   │   │   │   │   │   ├── data-table.component.ts
+│   │   │   │   │   │   ├── data-table.component.html
+│   │   │   │   │   │   └── data-table.component.scss
+│   │   │   │   │   │
+│   │   │   │   │   ├── alert/
+│   │   │   │   │   ├── modal/
+│   │   │   │   │   ├── card/
+│   │   │   │   │   └── spinner/
+│   │   │   │   │
+│   │   │   │   └── business/             # Componentes específicos del negocio
+│   │   │   │       ├── policy-card/
+│   │   │   │       ├── customer-info/
+│   │   │   │       └── payment-summary/
+│   │   │   │
+│   │   │   ├── directives/               # Directivas compartidas
+│   │   │   │   ├── click-outside.directive.ts
+│   │   │   │   ├── currency-mask.directive.ts
+│   │   │   │   └── permissions.directive.ts
+│   │   │   │
+│   │   │   ├── pipes/                    # Pipes compartidos
+│   │   │   │   ├── safe-html.pipe.ts
+│   │   │   │   ├── date-format.pipe.ts
+│   │   │   │   └── filter.pipe.ts
+│   │   │   │
+│   │   │   ├── utils/                    # Utilidades compartidas
+│   │   │   │   ├── form.utils.ts
+│   │   │   │   └── date.utils.ts
+│   │   │   │
+│   │   │   ├── models/                   # Modelos compartidos
+│   │   │   │   ├── pagination.model.ts
+│   │   │   │   └── api-response.model.ts
+│   │   │   │
+│   │   │   └── shared.module.ts          # Módulo compartido
+│   │   │
+│   │   ├── layout/                       # Componentes de layout
+│   │   │   ├── header/
+│   │   │   │   ├── header.component.ts
+│   │   │   │   ├── header.component.html
+│   │   │   │   └── header.component.scss
+│   │   │   ├── sidebar/
+│   │   │   ├── footer/
+│   │   │   ├── content/
+│   │   │   └── layout.module.ts
+│   │   │
+│   │   ├── modules/                      # Módulos funcionales
+│   │   │   │
+│   │   │   ├── dashboard/                # Módulo de dashboard
+│   │   │   │   ├── pages/
+│   │   │   │   │   ├── main-dashboard/
+│   │   │   │   │   │   ├── main-dashboard.component.ts
+│   │   │   │   │   │   ├── main-dashboard.component.html
+│   │   │   │   │   │   └── main-dashboard.component.scss
+│   │   │   │   │   └── analytics-dashboard/
+│   │   │   │   │
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── policy-summary-widget/
+│   │   │   │   │   ├── claims-chart/
+│   │   │   │   │   └── kpi-card/
+│   │   │   │   │
+│   │   │   │   ├── services/
+│   │   │   │   │   └── dashboard.service.ts
+│   │   │   │   │
+│   │   │   │   ├── store/                # NgRx store específico del módulo
+│   │   │   │   │   ├── dashboard.state.ts
+│   │   │   │   │   ├── actions/
+│   │   │   │   │   ├── reducers/
+│   │   │   │   │   ├── effects/
+│   │   │   │   │   └── selectors/
+│   │   │   │   │
+│   │   │   │   ├── models/
+│   │   │   │   │   └── dashboard.models.ts
+│   │   │   │   │
+│   │   │   │   ├── dashboard-routing.module.ts
+│   │   │   │   └── dashboard.module.ts
+│   │   │   │
+│   │   │   ├── policies/                 # Módulo de pólizas
+│   │   │   │   ├── pages/
+│   │   │   │   │   ├── policy-list/
+│   │   │   │   │   ├── policy-detail/
+│   │   │   │   │   ├── policy-create/
+│   │   │   │   │   └── policy-edit/
+│   │   │   │   │
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── policy-form/
+│   │   │   │   │   ├── coverage-selector/
+│   │   │   │   │   └── policy-history/
+│   │   │   │   │
+│   │   │   │   ├── forms/                # Formularios complejos
+│   │   │   │   │   ├── auto-policy-form/
+│   │   │   │   │   ├── home-policy-form/
+│   │   │   │   │   └── life-policy-form/
+│   │   │   │   │
+│   │   │   │   ├── services/
+│   │   │   │   │   └── policy.service.ts
+│   │   │   │   │
+│   │   │   │   ├── store/                # NgRx store específico de pólizas
+│   │   │   │   │   ├── actions/
+│   │   │   │   │   ├── reducers/
+│   │   │   │   │   ├── effects/
+│   │   │   │   │   └── selectors/
+│   │   │   │   │
+│   │   │   │   ├── models/
+│   │   │   │   │   ├── policy.model.ts
+│   │   │   │   │   └── coverage.model.ts
+│   │   │   │   │
+│   │   │   │   ├── policies-routing.module.ts
+│   │   │   │   └── policies.module.ts
+│   │   │   │
+│   │   │   ├── quotes/                   # Módulo de cotizaciones
+│   │   │   │   ├── pages/
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── quote-calculator/
+│   │   │   │   │   └── quote-comparison/
+│   │   │   │   │
+│   │   │   │   ├── services/
+│   │   │   │   │   └── quote.service.ts
+│   │   │   │   │
+│   │   │   │   ├── workers/
+│   │   │   │   │   └── premium-calculator.worker.ts
+│   │   │   │   │
+│   │   │   │   ├── store/
+│   │   │   │   ├── models/
+│   │   │   │   ├── quotes-routing.module.ts
+│   │   │   │   └── quotes.module.ts
+│   │   │   │
+│   │   │   ├── claims/                   # Módulo de reclamaciones
+│   │   │   │   ├── pages/
+│   │   │   │   ├── components/
+│   │   │   │   ├── services/
+│   │   │   │   ├── store/
+│   │   │   │   ├── models/
+│   │   │   │   ├── claims-routing.module.ts
+│   │   │   │   └── claims.module.ts
+│   │   │   │
+│   │   │   ├── customers/                # Módulo de clientes
+│   │   │   │   ├── (estructura similar)
+│   │   │   │
+│   │   │   ├── payments/                 # Módulo de pagos
+│   │   │   │   ├── (estructura similar)
+│   │   │   │
+│   │   │   ├── documents/                # Módulo de documentos
+│   │   │   │   ├── (estructura similar)
+│   │   │   │
+│   │   │   ├── reports/                  # Módulo de informes
+│   │   │   │   ├── (estructura similar)
+│   │   │   │
+│   │   │   └── admin/                    # Módulo de administración
+│   │   │       └── (estructura similar)
+│   │
+│   ├── assets/                           # Recursos estáticos
+│   │   ├── images/
+│   │   ├── icons/
+│   │   ├── fonts/
+│   │   └── i18n/                         # Archivos de traducción
+│   │
+│   ├── environments/                     # Configuración por entorno
+│   │   ├── environment.ts                # Desarrollo
+│   │   └── environment.prod.ts           # Producción
+│   │
+│   ├── styles/                           # Estilos globales
+│   │   ├── variables.scss                # Variables SCSS
+│   │   ├── mixins.scss                   # Mixins SCSS
+│   │   ├── themes/                       # Temas
+│   │   │   ├── default-theme.scss
+│   │   │   └── dark-theme.scss
+│   │   └── global.scss                   # Estilos globales
+│   │
+│   ├── index.html                        # HTML principal
+│   ├── main.ts                           # Punto de entrada principal
+│   ├── polyfills.ts                      # Polyfills
+│   └── styles.scss                       # Estilos globales principales
+│
+├── node_modules/                         # Dependencias (generado por npm/yarn)
+│
+├── angular.json                          # Configuración de Angular CLI
+├── tsconfig.json                         # Configuración de TypeScript
+├── package.json                          # Dependencias y scripts
+├── .editorconfig                         # Configuración del editor
+├── .gitignore                            # Archivos ignorados por Git
+├── karma.conf.js                         # Configuración de tests
+├── nginx.conf                            # Configuración para producción
+├── README.md                             # Documentación
+└── (otros archivos de configuración)
+```

@@ -1,0 +1,147 @@
+# Sistema de Gestión de Pólizas de Seguros (Healtech)
+
+## Análisis Técnico y Funcional
+
+### 2. Implementación de ForkJoinPool para Análisis de Riesgos
+
+#### Descripción Técnica
+El Servicio de Análisis de Riesgos implementa el framework ForkJoinPool de Java para procesar evaluaciones de riesgo de manera altamente paralela. Este enfoque permite la división recursiva de tareas complejas de análisis en subtareas más pequeñas que pueden ejecutarse en paralelo, siguiendo el patrón "divide y vencerás".
+
+#### Aspectos Funcionales
+- **División Adaptativa**: El sistema divide dinámicamente el análisis de riesgo basado en la complejidad de la póliza
+- **Umbral de Paralelismo**: Configuración de umbrales que determinan cuándo una tarea debe dividirse
+- **Recolección y Combinación**: Mecanismo para combinar resultados parciales en una evaluación final
+- **Control de Profundidad**: Limitación de la profundidad de recursión para evitar sobrecarga
+- **Balanceo de Carga**: Distribución equilibrada de tareas entre hilos disponibles
+
+### 3. Programación Reactiva en Servicio de Notificaciones
+
+#### Descripción Técnica
+El Servicio de Notificaciones utiliza Spring WebFlux y Project Reactor para implementar un enfoque completamente reactivo y no bloqueante al procesar y enviar notificaciones. Este diseño permite manejar grandes volúmenes de notificaciones con recursos mínimos.
+
+#### Aspectos Funcionales
+- **Procesamiento Asíncrono**: Manejo de todas las operaciones sin bloquear hilos
+- **Backpressure**: Control automático de la sobrecarga del productor sobre el consumidor
+- **Composición de Flujos**: Combinación de múltiples fuentes de eventos
+- **Paralelismo Controlado**: Procesamiento paralelo con limitación configurable
+- **Reintentos Reactivos**: Estrategias de reintento con retroceso exponencial
+
+### 4. Spring Batch para Procesamiento Masivo en Claim Service
+
+#### Descripción Técnica
+El Servicio de Reclamaciones implementa Spring Batch para el procesamiento eficiente de grandes volúmenes de reclamaciones, especialmente para operaciones como liquidaciones masivas, actualización de estados o generación de informes.
+
+#### Aspectos Funcionales
+- **Particionamiento Paralelo**: División de trabajos en particiones procesables en paralelo
+- **Step Scaling**: Escalado dinámico basado en la carga actual del sistema
+- **Checkpoints Transaccionales**: Puntos de control para recuperación de fallos
+- **Monitoreo de Progreso**: Rastreo en tiempo real del estado de los trabajos
+- **Reinicio Inteligente**: Capacidad de reiniciar trabajos desde el último punto de control
+
+### 5. Caché Distribuida con Redis
+
+#### Descripción Técnica
+Se implementa una estrategia de caché distribuida utilizando Redis para mejorar la latencia y reducir la carga en los servicios y bases de datos. La caché está integrada en múltiples niveles del sistema.
+
+#### Aspectos Funcionales
+- **Caché Multicapa**: Diferentes niveles de caché (local, distribuida)
+- **Políticas de Expiración**: Estrategias específicas según el tipo de datos
+- **Invalidación Basada en Eventos**: Actualización proactiva mediante eventos de Kafka
+- **Almacenamiento en Caché Condicional**: Reglas basadas en patrones de acceso
+- **Resiliente a Fallos**: Degradación elegante ante fallos de la caché
+
+### 6. Transacciones Distribuidas
+
+#### Descripción Técnica
+Para mantener la consistencia de datos entre microservicios, se implementa un patrón de Saga coreografiada utilizando Kafka como medio de comunicación de eventos. Esto permite mantener la consistencia eventual entre servicios autónomos.
+
+#### Aspectos Funcionales
+- **Orquestación de Sagas**: Coordinación de transacciones multietapa
+- **Transacciones Compensatorias**: Acciones de rollback para cada paso
+- **Idempotencia**: Garantía de procesamiento único de mensajes
+- **Rastreo de Estado**: Monitoreo del estado de transacciones distribuidas
+- **Recuperación Automática**: Mecanismos para recuperar transacciones fallidas
+
+### 7. API Gateway con Circuit Breaker
+
+#### Descripción Técnica
+El API Gateway utiliza el patrón Circuit Breaker (con Resilience4j) para detectar fallos en los servicios downstream y prevenir cascadas de fallos. Esto mejora la resiliencia global del sistema.
+
+#### Aspectos Funcionales
+- **Umbrales Adaptativos**: Ajuste dinámico basado en patrones de tráfico
+- **Estado Parcial**: Respuestas degradadas en lugar de fallos completos
+- **Reintentos Inteligentes**: Políticas por tipo de servicio y operación
+- **Timeout Control**: Limitación del tiempo de espera por servicio
+- **Fallbacks Contextuales**: Respuestas alternativas según el contexto
+
+### 8. Gestión de Concurrencia en Base de Datos
+
+#### Descripción Técnica
+Se utilizan técnicas avanzadas de control de concurrencia en las bases de datos para manejar las operaciones simultáneas sin comprometer la integridad de los datos.
+
+#### Aspectos Funcionales
+- **Bloqueo Optimista**: Detección de conflictos con versiones de entidades
+- **Particionamiento de Datos**: División horizontal para reducir contención
+- **Índices Concurrentes**: Optimización para operaciones de lectura/escritura
+- **Batch Processing**: Procesamiento por lotes para reducir overhead
+- **Row-Level Locking**: Estrategias granulares de bloqueo
+
+### 9. Monitoreo Avanzado de Performance
+
+#### Descripción Técnica
+El sistema implementa un stack completo de monitoreo que incluye recopilación de métricas, trazas distribuidas, logs centralizados y alertas automatizadas para supervisar el rendimiento y la salud del sistema.
+
+#### Aspectos Funcionales
+- **Métricas de Hilos**: Monitoreo detallado de pools y utilización
+- **Latencia End-to-End**: Seguimiento completo de tiempos de respuesta
+- **Alertas Predictivas**: Detección anticipada de problemas potenciales
+- **Dashboards Específicos**: Visualizaciones por dominio de negocio
+- **Correlación de Eventos**: Vinculación de logs, métricas y trazas
+
+### 10. Escalado Horizontal Automático
+
+#### Descripción Técnica
+Cada microservicio está diseñado para escalar horizontalmente de forma automática en respuesta a cambios en la carga, utilizando Kubernetes Horizontal Pod Autoscaler (HPA) basado en métricas personalizadas.
+
+#### Aspectos Funcionales
+- **Escalado Predictivo**: Anticipación de picos basada en patrones históricos
+- **Métricas Personalizadas**: Escalado basado en indicadores de negocio
+- **Límites de Capacidad**: Controles para prevenir sobre-provisión
+- **Warm-up Optimization**: Precalentamiento de instancias nuevas
+- **Scale-to-Zero**: Reducción completa para servicios sin uso
+
+### 11. Seguridad Multicapa
+
+#### Descripción Técnica
+El sistema implementa seguridad en múltiples capas, desde autenticación y autorización hasta cifrado de datos y protección contra ataques.
+
+#### Aspectos Funcionales
+- **Autenticación JWT**: Tokens firmados con rotación de claves
+- **Control de Acceso Basado en Roles**: Permisos granulares por servicio
+- **Rate Limiting**: Protección contra ataques de denegación de servicio
+- **Auditoría Detallada**: Registro de todas las operaciones sensibles
+- **Escaneo de Vulnerabilidades**: Integración en pipeline de CI/CD
+
+### 12. Arquitectura de Datos y Persistencia
+
+#### Descripción Técnica
+Se utiliza una estrategia de persistencia políglota, seleccionando el tipo de base de datos más adecuado para cada microservicio según sus patrones de acceso y requisitos de datos.
+
+#### Aspectos Funcionales
+- **PostgreSQL**: Para datos transaccionales (Pólizas, Clientes, Pagos)
+- **MongoDB**: Para datos flexibles y documentos (Documentos, Cotizaciones)
+- **Redis**: Para datos de alta velocidad (Caché, Sesiones)
+- **Elasticsearch**: Para búsqueda y análisis (Logs, Búsqueda avanzada)
+- **InfluxDB**: Para series temporales (Métricas de rendimiento)
+
+### 13. Pruebas de Rendimiento Automatizadas
+
+#### Descripción Técnica
+El sistema incluye un framework completo de pruebas de rendimiento que se ejecuta automáticamente como parte del pipeline de CI/CD para validar el rendimiento antes del despliegue.
+
+#### Aspectos Funcionales
+- **Pruebas de Carga**: Simulación de usuarios y operaciones concurrentes
+- **Pruebas de Estrés**: Evaluación de límites del sistema
+- **Pruebas de Resistencia**: Verificación de comportamiento bajo carga prolongada
+- **Benchmark Comparativo**: Comparación con versiones anteriores
+- **Profiling de Recursos**: Análisis detallado de consumo de CPU, memoria y E/S

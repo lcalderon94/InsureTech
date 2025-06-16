@@ -1,0 +1,246 @@
+# Arquitectura de Base de Datos Oracle para Sistema de Seguros
+
+## Enfoque Unificado con Oracle Database
+
+Para simplificar la arquitectura y optimizar operaciones, se utilizará Oracle Database como la base de datos principal para todos los microservicios. Este enfoque permite aprovechar las capacidades empresariales de Oracle mientras se mantiene una infraestructura de base de datos homogénea.
+
+## Estructura General
+
+| Componente | Descripción |
+|------------|-------------|
+| **Oracle Database Enterprise Edition** | Base de datos principal para todos los microservicios |
+| **Oracle Real Application Clusters (RAC)** | Para alta disponibilidad y escalabilidad horizontal |
+| **Oracle Data Guard** | Para replicación y recuperación de desastres |
+| **Oracle Partitioning** | Para segmentación eficiente de datos históricos y por dominio |
+| **Oracle Advanced Security** | Para cifrado de datos sensibles |
+| **Oracle In-Memory Database** | Para consultas analíticas de alto rendimiento |
+| **MinIO/Oracle Object Storage** | Solo para almacenamiento de documentos binarios grandes |
+
+## Esquemas por Microservicio
+
+Oracle utiliza el concepto de "esquemas" para separar lógicamente diferentes conjuntos de datos dentro de la misma instancia de base de datos. Cada microservicio tendrá su propio esquema:
+
+| Esquema | Microservicio | Características Específicas |
+|---------|--------------|---------------------------|
+| `AUTH_SCHEMA` | Auth Service | Tablas cifradas para credenciales, roles con herencia |
+| `POLICY_SCHEMA` | Policy Service | Particionamiento por tipo de póliza y año, índices para búsquedas complejas |
+| `CUSTOMER_SCHEMA` | Customer Service | Índices de texto para búsquedas de clientes, vistas materializadas para reporting |
+| `QUOTE_SCHEMA` | Quote Service | Tablas con columnas JSON para esquemas flexibles, procesamiento en memoria |
+| `CLAIM_SCHEMA` | Claim Service | Particionamiento por estado y fecha, tablas de historial con compresión |
+| `RISK_SCHEMA` | Risk Analysis Service | Almacenamiento de modelos como BLOB/JSON, procesamiento analítico |
+| `PAYMENT_SCHEMA` | Payment Service | Características de seguridad avanzadas, auditoría completa |
+| `NOTIFICATION_SCHEMA` | Notification Service | Tablas optimizadas para alta inserción, particionamiento por fecha |
+| `DOCUMENT_SCHEMA` | Document Service | Metadatos en Oracle, referencias a almacenamiento de objetos |
+| `MONITORING_SCHEMA` | Monitoring Service | Particionamiento por tiempo para métricas, compresión automática |
+
+## Diseño Detallado por Esquema
+
+### 1. POLICY_SCHEMA - Servicio de Pólizas
+
+#### Tablas Principales
+- `POLICIES` - Tabla principal de pólizas
+- `POLICY_VERSIONS` - Historial de versiones de pólizas
+- `COVERAGES` - Coberturas disponibles
+- `POLICY_COVERAGES` - Relación muchos a muchos entre pólizas y coberturas
+- `POLICY_DOCUMENTS` - Referencias a documentos asociados
+- `POLICY_NOTES` - Notas y comentarios sobre pólizas
+- `POLICY_EVENTS` - Eventos importantes del ciclo de vida
+
+#### Características Oracle Específicas
+- **Particionamiento por Rango**: Particionamiento de tabla `POLICIES` por fecha de inicio
+- **Particionamiento por Lista**: Para `POLICIES` por tipo de póliza
+- **Índices Basados en Funciones**: Para búsquedas insensibles a mayúsculas/minúsculas
+- **Compresión Avanzada**: Para datos históricos
+- **Vistas Materializadas**: Para reportes comunes con actualización programada
+- **Virtual Columns**: Para cálculos frecuentes como antigüedad de póliza
+
+#### Optimizaciones de Rendimiento
+- Índices compuestos para consultas frecuentes
+- Estadísticas automatizadas para el optimizador
+- Particionamiento adecuado para paralelismo en consultas grandes
+- Hints específicos de Oracle para consultas críticas
+
+### 2. QUOTE_SCHEMA - Servicio de Cotizaciones
+
+#### Tablas Principales
+- `QUOTES` - Cotizaciones generadas
+- `QUOTE_TEMPLATES` - Plantillas para diferentes tipos de cotizaciones
+- `PRICING_FACTORS` - Factores que afectan el precio
+- `CALCULATION_RULES` - Reglas para cálculo de primas
+
+#### Características Oracle Específicas
+- **Columnas JSON**: Almacenamiento flexible para diferentes tipos de cotizaciones
+- **Índices JSON**: Para búsquedas eficientes en documentos JSON
+- **In-Memory Column Store**: Para cálculos analíticos rápidos
+- **Temporal Validity**: Para mantener historial de cambios en reglas
+- **PL/SQL Stored Procedures**: Para lógica compleja de cálculo de primas
+
+#### Optimizaciones de Rendimiento
+- Tablas en memoria para datos de referencia frecuente
+- Procedimientos almacenados para cálculos intensivos
+- Jobs programados para limpieza de cotizaciones antiguas
+
+### 3. CUSTOMER_SCHEMA - Servicio de Clientes
+
+#### Tablas Principales
+- `CUSTOMERS` - Información básica de clientes
+- `CUSTOMER_DETAILS` - Información detallada y extendida
+- `ADDRESSES` - Direcciones asociadas
+- `CONTACT_METHODS` - Métodos de contacto
+- `CUSTOMER_SEGMENTS` - Segmentación de clientes
+- `CUSTOMER_RELATIONSHIPS` - Relaciones entre clientes (ej. familia)
+- `PREFERENCES` - Preferencias de comunicación y servicio
+
+#### Características Oracle Específicas
+- **Text Indexing**: Para búsqueda avanzada de clientes
+- **Virtual Private Database (VPD)**: Para seguridad a nivel de fila
+- **Real Application Security**: Para control de acceso basado en contexto
+- **Tablas Externas**: Para integración con fuentes de datos externas
+- **Transparent Data Encryption**: Para datos personales sensibles
+
+#### Optimizaciones de Rendimiento
+- Índices específicos para patrones de consulta comunes
+- Vistas materializadas para segmentación y análisis de clientes
+- Particionamiento por región geográfica para operaciones localizadas
+
+### 4. CLAIM_SCHEMA - Servicio de Reclamaciones
+
+#### Tablas Principales
+- `CLAIMS` - Reclamaciones
+- `CLAIM_DETAILS` - Detalles específicos por tipo
+- `CLAIM_STATUS_HISTORY` - Historial de estados
+- `CLAIM_DOCUMENTS` - Documentos adjuntos
+- `CLAIM_PARTICIPANTS` - Personas involucradas
+- `CLAIM_PAYMENTS` - Pagos asociados
+- `CLAIM_NOTES` - Notas y observaciones
+
+#### Características Oracle Específicas
+- **Flashback Data Archive**: Para auditoría completa e histórica
+- **Particionamiento Compuesto**: Por año y estado de reclamación
+- **Advanced Queuing**: Para procesamiento asíncrono de cambios de estado
+- **Oracle Workflow**: Para gestionar flujos de trabajo de reclamaciones
+- **SecureFiles**: Para almacenamiento eficiente de documentos pequeños
+
+#### Optimizaciones de Rendimiento
+- Índices basados en función para búsquedas por rango de fechas
+- Estadísticas extendidas para consultas complejas
+- Procedimientos almacenados para procesos por lotes
+
+### 5. RISK_SCHEMA - Servicio de Análisis de Riesgo
+
+#### Tablas Principales
+- `RISK_PROFILES` - Perfiles de riesgo evaluados
+- `RISK_FACTORS` - Factores considerados en evaluación
+- `RISK_MODELS` - Modelos predictivos almacenados
+- `HISTORICAL_ANALYSES` - Historial de análisis previos
+- `EXTERNAL_DATA_REFERENCES` - Referencias a fuentes externas
+
+#### Características Oracle Específicas
+- **Oracle Machine Learning**: Para algoritmos predictivos integrados
+- **Columnas JSON/BLOB**: Para almacenar modelos y configuraciones
+- **Spatial and Graph**: Para análisis geoespacial de riesgos
+- **R Enterprise**: Para cálculos estadísticos avanzados
+- **Database In-Memory**: Para análisis rápido de grandes conjuntos de datos
+
+#### Optimizaciones de Rendimiento
+- Procesamiento paralelo para cálculos complejos
+- Tablas temporales para resultados intermedios
+- Particionamiento para paralelismo en operaciones masivas
+
+### 6. PAYMENT_SCHEMA - Servicio de Pagos
+
+#### Tablas Principales
+- `PAYMENTS` - Registro principal de pagos
+- `PAYMENT_METHODS` - Métodos de pago registrados
+- `PAYMENT_TRANSACTIONS` - Transacciones detalladas
+- `REFUNDS` - Reembolsos
+- `INVOICES` - Facturas
+- `PAYMENT_PLANS` - Planes de pago
+- `TRANSACTION_LOGS` - Registro detallado de operaciones
+
+#### Características Oracle Específicas
+- **Advanced Queuing**: Para procesamiento asíncrono de pagos
+- **Transparent Data Encryption**: Para datos financieros sensibles
+- **Database Vault**: Para controles de acceso adicionales
+- **Fine-Grained Auditing**: Para cumplimiento normativo
+- **Oracle Label Security**: Para clasificación de datos sensibles
+
+#### Optimizaciones de Rendimiento
+- Particionamiento por fecha para aislamiento de datos actuales
+- Índices específicos para conciliación y reporting
+- Compresión para datos históricos
+
+### 7. DOCUMENT_SCHEMA - Servicio de Documentos
+
+#### Tablas Principales
+- `DOCUMENTS` - Metadatos de documentos
+- `DOCUMENT_VERSIONS` - Versiones de documentos
+- `TEMPLATES` - Plantillas de documentos
+- `DOCUMENT_TYPES` - Tipos de documentos
+- `DOCUMENT_TAGS` - Etiquetas y categorización
+
+#### Características Oracle Específicas
+- **Oracle Text**: Para búsqueda de texto completo en documentos
+- **SecureFiles**: Para documentos de tamaño pequeño/medio
+- **Oracle Multimedia**: Para gestión de contenido multimedia
+- **Object Storage Integration**: Para documentos de gran tamaño
+
+#### Estrategia Híbrida
+- Metadatos y documentos pequeños en Oracle
+- Documentos grandes en MinIO con referencias en Oracle
+
+## Estrategias de Alta Concurrencia
+
+### 1. Control de Concurrencia
+
+- **Row-Level Locking**: Para minimizar contención
+- **Optimistic Locking**: Mediante versiones de registro para operaciones no críticas
+- **Select For Update Nowait/Skip Locked**: Para procesamiento paralelo de registros
+- **Isolation Levels**: Configurados por tipo de transacción y requisitos de consistencia
+
+### 2. Escalabilidad y Rendimiento
+
+- **Oracle RAC**: Para escalabilidad horizontal
+- **Connection Pooling**: Configurado a nivel de aplicación
+- **Partitioning**: Para paralelismo y distribución de carga
+- **Result Cache**: Para consultas frecuentes de solo lectura
+- **Statement Caching**: En código de aplicación
+
+### 3. Técnicas de Procesamiento Batch
+
+- **Bulk Collect/Forall**: Para operaciones DML masivas
+- **Parallel Execution**: Para consultas analíticas y cargas grandes
+- **Pipelined Functions**: Para procesamiento eficiente de conjuntos grandes
+- **Autonomous Transactions**: Para operaciones de registro sin bloquear la transacción principal
+
+## Administración con DBeaver
+
+DBeaver proporciona una interfaz unificada para administrar todos los esquemas de Oracle:
+
+- Navegación entre esquemas de microservicios
+- Ejecución de consultas y scripts
+- Visualización y edición de datos
+- Exportación e importación 
+- Monitoreo de rendimiento básico
+
+## Estrategia de Implementación y Migración
+
+### Fase 1: Configuración Base
+- Instalación de Oracle RAC
+- Configuración de esquemas y usuarios por microservicio
+- Implementación de políticas de seguridad base
+
+### Fase 2: Implementación por Dominio
+- Comenzar con microservicios core (Pólizas, Clientes)
+- Implementar esquemas con todas las tablas necesarias
+- Configurar particionamiento e índices
+
+### Fase 3: Optimización y Afinamiento
+- Análisis de patrones de acceso reales
+- Ajuste de índices y configuraciones
+- Implementación de características avanzadas como In-Memory
+
+### Fase 4: Alta Disponibilidad
+- Configuración de Data Guard
+- Implementación de procedimientos de backup y recuperación
+- Pruebas de failover y recuperación

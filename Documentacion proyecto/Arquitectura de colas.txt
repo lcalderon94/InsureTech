@@ -1,0 +1,63 @@
+Customer Service (productor)
+
+customer-created - Notifica el registro de nuevos clientes
+customer-updated - Notifica cambios en información de clientes
+customer-status-changed - Notifica cambios de estado de clientes
+
+Policy Service (productor)
+
+policy-created - Notifica creación de nuevas pólizas
+policy-updated - Notifica cambios en pólizas
+policy-status-changed - Notifica cambios de estado en pólizas
+policy-cancelled - Notifica cancelación de pólizas
+policy-renewed - Notifica renovación de pólizas
+policy.premium.due - Notifica primas pendientes de pago
+
+Claim Service (productor y consumidor)
+Produce:
+
+claim-created - Notifica creación de reclamaciones
+claim-updated - Notifica cambios en reclamaciones
+claim-status-changed - Notifica cambios de estado en reclamaciones
+claim-item-added - Notifica adición de ítems a reclamaciones
+claim.payment.requested - Solicita pagos para reclamaciones
+
+Consume:
+
+policy-cancelled - Recibe notificaciones de pólizas canceladas
+payment.processed - Recibe notificaciones de pagos procesados
+
+Payment Service (productor y consumidor)
+Produce:
+
+payment.created - Notifica creación de nuevos pagos
+payment.processed - Notifica procesamiento exitoso o fallido de pagos
+payment.failed - Notifica fallos en pagos
+payment.refund.processed - Notifica reembolsos procesados
+payment.transaction.started - Notifica inicio de transacciones
+payment.transaction.completed - Notifica finalización de transacciones
+payment.transaction.failed - Notifica fallos en transacciones
+payment-events - Canal general para eventos de pago
+refund-events - Canal para eventos relacionados con reembolsos
+payment.notifications - Notificaciones relacionadas con pagos
+
+Consume:
+
+claim.payment.requested - Recibe solicitudes de pago para reclamaciones
+policy.premium.due - Recibe notificaciones de primas pendientes
+policy.created - Recibe notificaciones de creación de pólizas
+policy.renewed - Recibe notificaciones de renovación de pólizas
+policy.canceled - Recibe notificaciones de cancelación de pólizas
+policy.status.changed - Recibe notificaciones de cambios de estado en pólizas
+
+Notification Service (solo consumidor)
+Consume:
+
+customer-events - Eventos de clientes para enviar notificaciones
+policy-events - Eventos de pólizas para enviar notificaciones
+payment-events - Eventos de pagos para enviar notificaciones
+claim-events - Eventos de reclamaciones para enviar notificaciones
+
+Quote Service
+Tiene implementadas las dependencias de Kafka en su configuración, pero actualmente no produce ni consume colas Kafka.
+Con esta información, ahora tenemos un mapa completo de las colas Kafka utilizadas a través de todos los microservicios, lo que permitirá asegurar que los nombres de las colas sean consistentes entre productores y consumidores.
