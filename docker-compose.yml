@@ -130,6 +130,17 @@ services:
     environment:
       - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
 
+  catastro-service:
+    image: catastro-service:latest
+    container_name: catastro-service
+    ports:
+      - "10000:10000"
+    depends_on:
+      - discovery-service
+      - config-server
+    environment:
+      - SPRING_CLOUD_CONFIG_URI=http://config-server:8888
+
   monitoring-service:
     image: monitoring-service:latest
     container_name: monitoring-service
