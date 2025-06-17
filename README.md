@@ -5,7 +5,7 @@ Para facilitar su ejecución local se incluye un archivo `docker-compose.yml` en
 
 ## Requisitos
 - Docker y Docker Compose instalados
-- Las imágenes de cada microservicio deben estar previamente construidas con el nombre indicado en el compose (por ejemplo `api-gateway:latest`).
+- Las imágenes de cada microservicio deben estar previamente construidas con el nombre indicado en el compose (por ejemplo `api-gateway:latest` o `catastro-service:latest`).
 
 ## Uso rápido
 1. Posicionarse en la raíz del repositorio.
