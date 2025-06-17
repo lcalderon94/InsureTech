@@ -1,19 +1,18 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
+
+import { PolicyListComponent } from './policy-list.component';
+import { PolicyDetailComponent } from './policy-detail.component';
 
 const routes: Routes = [
-  { path: '', component: DummyPoliciesComponent }
+  { path: '', component: PolicyListComponent },
+  { path: ':id', component: PolicyDetailComponent }
 ];
 
-import { Component } from '@angular/core';
-@Component({
-  template: '<h3>Policies works!</h3>'
-})
-export class DummyPoliciesComponent {}
-
 @NgModule({
-  declarations: [DummyPoliciesComponent],
-  imports: [CommonModule, RouterModule.forChild(routes)]
+  declarations: [PolicyListComponent, PolicyDetailComponent],
+  imports: [CommonModule, HttpClientModule, RouterModule.forChild(routes)]
 })
 export class PoliciesModule {}
